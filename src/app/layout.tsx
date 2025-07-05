@@ -5,6 +5,7 @@ import { Toaster } from "react-hot-toast";
 import "./globals.css";
 
 import { AuthProvider } from "@/lib/auth/context";
+import { OrganizationProvider } from "@/lib/organization/context";
 import { QueryProvider } from "@/lib/query/provider";
 
 const inter = Inter({
@@ -26,8 +27,9 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
         <AuthProvider>
-          <QueryProvider>
-            {children}
+          <OrganizationProvider>
+            <QueryProvider>
+              {children}
             <Toaster
               position="top-right"
               toastOptions={{
@@ -51,7 +53,8 @@ export default function RootLayout({
                 },
               }}
             />
-          </QueryProvider>
+            </QueryProvider>
+          </OrganizationProvider>
         </AuthProvider>
       </body>
     </html>

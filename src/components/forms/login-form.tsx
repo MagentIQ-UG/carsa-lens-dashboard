@@ -69,7 +69,7 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
       await login({
         email: data.email,
         password: data.password,
-        rememberMe: data.rememberMe,
+        remember_me: data.rememberMe,
       });
 
       // Success

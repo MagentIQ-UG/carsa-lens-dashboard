@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+import { createAuthMiddleware } from '@/lib/auth/middleware';
 import { createCORSResponse } from '@/lib/security/cors';
+
+// Create authentication middleware instance
+const authMiddleware = createAuthMiddleware();
 
 export function middleware(request: NextRequest) {
   // Handle CORS preflight requests
@@ -19,7 +23,13 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // Create response
+  // Apply authentication middleware first
+  const authResponse = authMiddleware(request);
+  if (authResponse) {
+    return authResponse; // Redirect or access denied response
+  }
+
+  // Create response for authorized requests
   const response = NextResponse.next();
 
   // Add CORS headers for actual requests

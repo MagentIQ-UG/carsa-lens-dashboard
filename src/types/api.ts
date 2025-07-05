@@ -116,6 +116,11 @@ export interface OrganizationResponse {
   website?: string;
   industry?: string;
   size?: OrganizationSize;
+  email?: string;
+  phone?: string;
+  address?: string;
+  country?: string;
+  timezone?: string;
   created_at: string;
   updated_at: string;
 }

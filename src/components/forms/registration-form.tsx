@@ -79,12 +79,14 @@ export function RegistrationForm({ onSuccess, redirectTo = '/dashboard' }: Regis
 
     try {
       await registerUser({
-        firstName: data.firstName,
-        lastName: data.lastName,
+        first_name: data.firstName,
+        last_name: data.lastName,
         email: data.email,
         password: data.password,
-        organizationName: data.organizationName,
-        role: data.role,
+        organization_name: data.organizationName,
+        organization_slug: data.organizationName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        accept_terms: true,
+        accept_privacy: true,
       });
 
       // Success

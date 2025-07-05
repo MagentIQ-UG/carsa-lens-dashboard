@@ -1,0 +1,12 @@
+node_modules
+.next
+.turbo
+out
+dist
+build
+.env.local
+.env
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.log

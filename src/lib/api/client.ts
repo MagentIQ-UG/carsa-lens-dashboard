@@ -1,12 +1,15 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { toast } from 'react-hot-toast';
 
+import { getCSRFToken } from '@/lib/security/csrf';
+import { rateLimiter, RateLimitError } from '@/lib/security/rate-limit';
 import { APIError } from '@/types/api';
 
 // Create axios instance with default config
 export const apiClient: AxiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   timeout: 30000,
+  withCredentials: true, // Always send httpOnly cookies
   headers: {
     'Content-Type': 'application/json',
   },
@@ -57,10 +60,30 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // Add organization context if available
-    const orgId = localStorage.getItem('current_org_id');
+    // Add organization context if available (use sessionStorage for security)
+    const orgId = typeof window !== 'undefined' ? sessionStorage.getItem('current_org_id') : null;
     if (orgId && config.headers) {
       config.headers['X-Organization-ID'] = orgId;
+    }
+
+    // Add CSRF token for state-changing requests
+    if (config.method && ['post', 'put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      const csrfToken = getCSRFToken();
+      if (csrfToken && config.headers) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+
+    // Rate limiting check
+    const endpoint = config.url || '';
+    const rateCheck = rateLimiter.checkAPILimit(endpoint);
+    if (!rateCheck.allowed) {
+      const error = new RateLimitError(
+        'Too many requests. Please try again later.',
+        rateCheck.resetTime || Date.now() + 60000,
+        rateCheck.remaining || 0
+      );
+      return Promise.reject(error);
     }
 
     // Log requests in development
@@ -106,29 +129,26 @@ apiClient.interceptors.response.use(
         originalRequest._retry = true;
 
         try {
-          // Attempt to refresh token
-          const refreshToken = document.cookie
-            .split('; ')
-            .find(row => row.startsWith('refresh_token='))
-            ?.split('=')[1];
-
-          if (refreshToken) {
-            const response = await axios.post(
-              `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
-              { refresh_token: refreshToken }
-            );
-
-            const { access_token } = response.data;
-            
-            // Update auth store using callback
-            if (tokenRefreshCallback) {
-              tokenRefreshCallback(access_token);
+          // Attempt to refresh token using httpOnly cookies
+          // The refresh token is automatically sent via httpOnly cookies
+          const response = await axios.post(
+            `${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`,
+            {}, // Empty body - token comes from httpOnly cookie
+            { 
+              withCredentials: true // Include httpOnly cookies
             }
+          );
 
-            // Retry original request with new token
-            originalRequest.headers.Authorization = `Bearer ${access_token}`;
-            return apiClient(originalRequest);
+          const { access_token } = response.data;
+          
+          // Update auth store using callback
+          if (tokenRefreshCallback) {
+            tokenRefreshCallback(access_token);
           }
+
+          // Retry original request with new token
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          return apiClient(originalRequest);
         } catch (refreshError) {
           // Refresh failed - clear auth and redirect to login
           if (authClearCallback) {

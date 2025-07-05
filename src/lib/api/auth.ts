@@ -24,7 +24,7 @@ export const authApi = {
     apiPost('/auth/logout'),
 
   refreshToken: (): Promise<LoginResponse> =>
-    apiPost('/auth/refresh'),
+    apiPost('/auth/refresh', {}, { withCredentials: true }),
 
   // User session
   getMe: (): Promise<SessionInfo> =>

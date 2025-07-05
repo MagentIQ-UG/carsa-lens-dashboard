@@ -1,7 +1,23 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-import type { UserResponse } from '@/types/api';
+import { apiPost } from '@/lib/api/client';
+import type { UserResponse, LoginResponse, RegistrationResponse, TokenResponse } from '@/types/api';
+
+interface LoginData {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+interface RegisterData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  organizationName: string;
+  role: string;
+}
 
 interface AuthState {
   // Authentication state
@@ -18,6 +34,10 @@ interface AuthState {
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
+  login: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => void;
+  refreshToken: () => Promise<void>;
   
   // Computed getters
   isLoggedIn: () => boolean;
@@ -88,6 +108,93 @@ export const useAuthStore = create<AuthState>()(
         
         const userPermissions = rolePermissions[state.user.role] || [];
         return userPermissions.includes('*') || userPermissions.includes(permission);
+      },
+
+      // Auth methods
+      login: async (data: LoginData) => {
+        set((state) => ({ ...state, isLoading: true }));
+        try {
+          const response = await apiPost<LoginResponse>('/auth/login', {
+            email: data.email,
+            password: data.password,
+            remember_me: data.rememberMe,
+          });
+
+          set({
+            isAuthenticated: true,
+            accessToken: response.access_token,
+            user: response.user,
+            isLoading: false,
+          });
+        } catch (error) {
+          set((state) => ({ ...state, isLoading: false }));
+          throw error;
+        }
+      },
+
+      register: async (data: RegisterData) => {
+        set((state) => ({ ...state, isLoading: true }));
+        try {
+          const response = await apiPost<RegistrationResponse>('/auth/register', {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            email: data.email,
+            password: data.password,
+            organization_name: data.organizationName,
+            organization_slug: data.organizationName.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+            accept_terms: true,
+            accept_privacy: true,
+          });
+
+          set({
+            isAuthenticated: true,
+            accessToken: response.access_token,
+            user: response.user,
+            isLoading: false,
+          });
+        } catch (error) {
+          set((state) => ({ ...state, isLoading: false }));
+          throw error;
+        }
+      },
+
+      logout: () => {
+        // Clear auth state
+        set({
+          isAuthenticated: false,
+          accessToken: null,
+          user: null,
+          isLoading: false,
+          isRefreshing: false,
+        });
+
+        // Clear any stored data
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('current_org_id');
+        }
+      },
+
+      refreshToken: async () => {
+        set((state) => ({ ...state, isRefreshing: true }));
+        try {
+          const response = await apiPost<TokenResponse>('/auth/refresh', {});
+          
+          set((state) => ({
+            ...state,
+            accessToken: response.access_token,
+            isRefreshing: false,
+          }));
+        } catch (error) {
+          // Refresh failed - clear auth
+          set({
+            isAuthenticated: false,
+            accessToken: null,
+            user: null,
+            isLoading: false,
+            isRefreshing: false,
+          });
+          throw error;
+        }
       },
     }),
     {

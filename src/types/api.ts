@@ -62,6 +62,9 @@ export interface UserResponse {
   updated_at: string;
 }
 
+// Type alias for convenience
+export type User = UserResponse;
+
 export interface SessionInfo extends UserResponse {
   organization: OrganizationResponse;
   permissions: string[];

@@ -16,14 +16,14 @@ export const candidatesApi = {
     extractProfile: boolean = true,
     onProgress?: (progress: number) => void
   ): Promise<CVUploadResponse> =>
-    uploadFile('/candidates/upload', file, { extract_profile: extractProfile }, onProgress),
+    uploadFile('/candidates/upload', file, { extract_profile: extractProfile.toString() }, onProgress),
 
   batchUploadCVs: (
     files: File[],
     extractProfile: boolean = true,
     onProgress?: (progress: number) => void
   ): Promise<BatchCVUploadResponse> =>
-    uploadFiles('/candidates/batch-upload', files, { extract_profile: extractProfile }, onProgress),
+    uploadFiles('/candidates/batch-upload', files, { extract_profile: extractProfile.toString() }, onProgress),
 
   // Candidate management
   listCandidates: (filters?: CandidateFilters): Promise<CandidateResponse[]> =>
@@ -36,7 +36,7 @@ export const candidatesApi = {
   getCandidateProfile: (candidateId: string): Promise<{
     candidate: CandidateResponse;
     profile_data: CandidateProfileData;
-    extraction_metadata: any;
+    extraction_metadata: Record<string, unknown>;
   }> =>
     apiGet(`/candidates/${candidateId}/profile`),
 

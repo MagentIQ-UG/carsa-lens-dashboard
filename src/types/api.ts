@@ -2,7 +2,7 @@
 // Generated from OpenAPI specification
 
 // Base Response Types
-export interface BaseResponse<T = any> {
+export interface BaseResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -163,8 +163,8 @@ export interface JobDescriptionResponse {
   version: number;
   is_active: boolean;
   processing_status: ProcessingStatus;
-  extraction_metadata?: any;
-  enhancement_metadata?: any;
+  extraction_metadata?: Record<string, unknown>;
+  enhancement_metadata?: Record<string, unknown>;
   created_at: string;
   updated_at: string;
 }
@@ -294,7 +294,7 @@ export interface EvaluationResponse {
   recommendations: string;
   confidence_level: number;
   ai_model: string;
-  evaluation_metadata: any;
+  evaluation_metadata: Record<string, unknown>;
   created_at: string;
 }
 
@@ -313,7 +313,7 @@ export interface BatchEvaluationResponse {
   successful_evaluations: number;
   failed_evaluations: number;
   evaluations: EvaluationResponse[];
-  errors: any[];
+  errors: string[];
 }
 
 // Scorecard Types
@@ -419,7 +419,7 @@ export interface APIError {
   message: string;
   status_code: number;
   request_id: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 export interface ValidationError {

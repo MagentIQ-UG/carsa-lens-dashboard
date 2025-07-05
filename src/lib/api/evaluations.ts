@@ -34,7 +34,7 @@ export const evaluationsApi = {
     qualification_distribution: Record<string, number>;
     top_strengths: string[];
     common_gaps: string[];
-    evaluation_trends: any[];
+    evaluation_trends: Record<string, unknown>[];
   }> =>
     apiGet(`/evaluations/summary/${jobId}`),
 

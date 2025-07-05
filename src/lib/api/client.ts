@@ -12,27 +12,49 @@ export const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Token management
-let accessToken: string | null = null;
+// Token refresh callback - will be set by auth context
+let tokenRefreshCallback: ((token: string) => void) | null = null;
+let authClearCallback: (() => void) | null = null;
 
-export const setAccessToken = (token: string | null) => {
-  accessToken = token;
+// Initialize auth callbacks
+export const initAuthCallbacks = (
+  refreshCallback: (token: string) => void,
+  clearCallback: () => void
+) => {
+  tokenRefreshCallback = refreshCallback;
+  authClearCallback = clearCallback;
 };
 
+// Get auth store - this is safe to import in API client
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let getAuthStore: (() => any) | null = null;
+
+// Initialize auth store getter (keeping for backward compatibility)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const initAuthStore = (storeGetter: () => any) => {
+  getAuthStore = storeGetter;
+};
+
+// Helper functions for token management
 export const getAccessToken = (): string | null => {
-  return accessToken;
+  if (!getAuthStore) return null;
+  const state = getAuthStore();
+  return state?.accessToken || null;
 };
 
-export const clearTokens = () => {
-  accessToken = null;
+export const getCurrentUser = () => {
+  if (!getAuthStore) return null;
+  const state = getAuthStore();
+  return state?.user || null;
 };
 
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     // Add auth token if available
-    if (accessToken && config.headers) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
+    const token = getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     // Add organization context if available
@@ -43,7 +65,7 @@ apiClient.interceptors.request.use(
 
     // Log requests in development
     if (process.env.NEXT_PUBLIC_DEBUG_API === 'true') {
-      console.log('🔄 API Request:', {
+      console.warn('🔄 API Request:', {
         method: config.method?.toUpperCase(),
         url: config.url,
         data: config.data,
@@ -63,7 +85,7 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     // Log successful responses in development
     if (process.env.NEXT_PUBLIC_DEBUG_API === 'true') {
-      console.log('✅ API Response:', {
+      console.warn('✅ API Response:', {
         status: response.status,
         url: response.config.url,
         data: response.data,
@@ -97,15 +119,21 @@ apiClient.interceptors.response.use(
             );
 
             const { access_token } = response.data;
-            setAccessToken(access_token);
+            
+            // Update auth store using callback
+            if (tokenRefreshCallback) {
+              tokenRefreshCallback(access_token);
+            }
 
             // Retry original request with new token
             originalRequest.headers.Authorization = `Bearer ${access_token}`;
             return apiClient(originalRequest);
           }
         } catch (refreshError) {
-          // Refresh failed - redirect to login
-          clearTokens();
+          // Refresh failed - clear auth and redirect to login
+          if (authClearCallback) {
+            authClearCallback();
+          }
           window.location.href = '/login';
           return Promise.reject(refreshError);
         }
@@ -146,55 +174,55 @@ apiClient.interceptors.response.use(
 );
 
 // API helper functions
-export const apiRequest = <T = any>(
+export const apiRequest = <T = unknown>(
   config: AxiosRequestConfig
 ): Promise<T> => {
   return apiClient(config).then(response => response.data);
 };
 
-export const apiGet = <T = any>(
+export const apiGet = <T = unknown>(
   url: string,
   config?: AxiosRequestConfig
 ): Promise<T> => {
   return apiRequest<T>({ ...config, method: 'GET', url });
 };
 
-export const apiPost = <T = any>(
+export const apiPost = <T = unknown>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig
 ): Promise<T> => {
   return apiRequest<T>({ ...config, method: 'POST', url, data });
 };
 
-export const apiPut = <T = any>(
+export const apiPut = <T = unknown>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig
 ): Promise<T> => {
   return apiRequest<T>({ ...config, method: 'PUT', url, data });
 };
 
-export const apiDelete = <T = any>(
+export const apiDelete = <T = unknown>(
   url: string,
   config?: AxiosRequestConfig
 ): Promise<T> => {
   return apiRequest<T>({ ...config, method: 'DELETE', url });
 };
 
-export const apiPatch = <T = any>(
+export const apiPatch = <T = unknown>(
   url: string,
-  data?: any,
+  data?: unknown,
   config?: AxiosRequestConfig
 ): Promise<T> => {
   return apiRequest<T>({ ...config, method: 'PATCH', url, data });
 };
 
 // File upload helper
-export const uploadFile = <T = any>(
+export const uploadFile = <T = unknown>(
   url: string,
   file: File,
-  additionalData?: Record<string, any>,
+  additionalData?: Record<string, string>,
   onProgress?: (progress: number) => void
 ): Promise<T> => {
   const formData = new FormData();
@@ -224,10 +252,10 @@ export const uploadFile = <T = any>(
 };
 
 // Batch file upload helper
-export const uploadFiles = <T = any>(
+export const uploadFiles = <T = unknown>(
   url: string,
   files: File[],
-  additionalData?: Record<string, any>,
+  additionalData?: Record<string, string>,
   onProgress?: (progress: number) => void
 ): Promise<T> => {
   const formData = new FormData();

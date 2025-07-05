@@ -6,9 +6,8 @@ export { default as evaluationsApi } from './evaluations';
 
 export {
   apiClient,
-  setAccessToken,
   getAccessToken,
-  clearTokens,
+  getCurrentUser,
   apiGet,
   apiPost,
   apiPut,
@@ -19,11 +18,20 @@ export {
 } from './client';
 
 // API error handling utilities
-export const isAPIError = (error: any): error is { message: string; status_code: number } => {
-  return error && typeof error.message === 'string' && typeof error.status_code === 'number';
+export const isAPIError = (error: unknown): error is { message: string; status_code: number } => {
+  return (
+    error !== null &&
+    typeof error === 'object' &&
+    'message' in error &&
+    'status_code' in error &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    typeof (error as any).message === 'string' &&
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    typeof (error as any).status_code === 'number'
+  );
 };
 
-export const getErrorMessage = (error: any): string => {
+export const getErrorMessage = (error: unknown): string => {
   if (isAPIError(error)) {
     return error.message;
   }

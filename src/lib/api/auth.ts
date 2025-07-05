@@ -3,14 +3,13 @@ import {
   LoginResponse,
   RegisterRequest,
   RegistrationResponse,
-  RefreshTokenRequest,
-  TokenResponse,
   SessionInfo,
   PasswordChangeRequest,
   PasswordResetRequest,
+  UserResponse,
 } from '@/types/api';
 
-import { apiPost, apiGet } from './client';
+import { apiPost, apiGet, apiPut } from './client';
 
 // Authentication API endpoints
 export const authApi = {
@@ -24,12 +23,21 @@ export const authApi = {
   logout: (): Promise<{ message: string }> =>
     apiPost('/auth/logout'),
 
-  refreshToken: (data: RefreshTokenRequest): Promise<TokenResponse> =>
-    apiPost('/auth/refresh', data),
+  refreshToken: (): Promise<LoginResponse> =>
+    apiPost('/auth/refresh'),
 
   // User session
   getMe: (): Promise<SessionInfo> =>
     apiGet('/auth/me'),
+    
+  getSession: (): Promise<SessionInfo> =>
+    apiGet('/auth/session'),
+    
+  updateProfile: (data: Partial<UserResponse>): Promise<UserResponse> =>
+    apiPut('/auth/profile', data),
+    
+  switchOrganization: (organizationId: string): Promise<LoginResponse> =>
+    apiPost('/auth/switch-organization', { organization_id: organizationId }),
 
   // Password management
   changePassword: (data: PasswordChangeRequest): Promise<{ message: string }> =>

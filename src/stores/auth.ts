@@ -66,15 +66,8 @@ export const useAuthStore = create<AuthState>()(
           );
           
           if (!shouldUpdate) {
-            console.log('🔄 Auth setAuth: no change needed');
             return state; // No change needed
           }
-          
-          console.log('🔄 Auth setAuth: updating state', { 
-            currentAuth: state.isAuthenticated,
-            newAuth: auth.isAuthenticated,
-            hasToken: !!auth.accessToken 
-          });
           
           const newState = { ...state };
           

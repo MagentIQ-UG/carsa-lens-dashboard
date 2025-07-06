@@ -31,13 +31,6 @@ export function useLogin() {
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (response: LoginResponse) => {
-      console.log('🎉 Login successful, response:', { 
-        hasAccessToken: !!response.tokens?.access_token, 
-        hasUser: !!response.tokens?.user,
-        tokenPreview: response.tokens?.access_token?.substring(0, 20) + '...',
-        requiresVerification: response.requires_verification
-      });
-
       // Store tokens in memory via Zustand
       setAuth({
         accessToken: response.tokens.access_token,
@@ -49,19 +42,7 @@ export function useLogin() {
       const isHttps = location.protocol === 'https:';
       const cookieValue = `auth_token=${response.tokens.access_token}; path=/; SameSite=Strict${isHttps ? '; Secure' : ''}`;
       document.cookie = cookieValue;
-      console.log('🍪 Cookie set:', { 
-        isHttps, 
-        cookieString: cookieValue.substring(0, 50) + '...' 
-      });
       
-      // Verify cookie was set
-      const cookies = document.cookie;
-      const authCookie = cookies.split('; ').find(row => row.startsWith('auth_token='));
-      console.log('🔍 Cookie verification:', { 
-        foundCookie: !!authCookie, 
-        cookiePreview: authCookie?.substring(0, 30) + '...' 
-      });
-
       // Invalidate and refetch user session
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
       

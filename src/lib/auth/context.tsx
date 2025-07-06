@@ -74,19 +74,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           ?.split('=')[1];
         
         if (authToken) {
-          console.log('🔑 Found existing auth token, validating session');
-          
           try {
             // First, do a basic JWT validation to check if token is expired
             const payload = JSON.parse(atob(authToken.split('.')[1]));
             const isExpired = payload.exp * 1000 < Date.now();
             
             if (isExpired) {
-              console.log('🔑 Auth token expired, clearing cookie');
               document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
             } else {
               // Token appears valid, set temporary auth state with just the token
-              console.log('🔑 Token appears valid, temporarily setting auth state');
               setAuth({ 
                 accessToken: authToken,
                 isAuthenticated: true
@@ -97,26 +93,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 const { authApi } = await import('@/lib/api/auth');
                 const sessionInfo = await authApi.getMe();
                 
-                console.log('🔑 Successfully validated token and got user session');
                 // Update auth state with complete user data
                 setAuth({
                   accessToken: authToken,
                   isAuthenticated: true,
                   user: sessionInfo // SessionInfo extends UserResponse
                 });
-              } catch (meError) {
-                console.log('🔑 Failed to validate token with /auth/me, token might be invalid:', meError);
+              } catch {
                 // If getting user session fails, clear the auth state and cookie
                 clearAuth();
                 document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
               }
             }
-          } catch (e) {
-            console.log('🔑 Invalid auth token format, clearing cookie', e);
+          } catch {
             document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           }
-        } else {
-          console.log('🔑 No existing auth token found');
         }
         
         // Mark as initialized

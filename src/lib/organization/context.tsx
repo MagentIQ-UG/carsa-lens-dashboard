@@ -51,7 +51,7 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
       // 1. The API spec shows limited organization endpoints
       // 2. Organization data is already available in the login response
       // 3. This prevents API errors from cluttering the console
-      console.log('📋 Organization: Ready (using auth context data)');
+      // Organization context ready (using auth context data)
     } else if (initialized && !isAuthenticated) {
       // Clear organization data when user logs out
       clearOrganizationData();

@@ -118,14 +118,12 @@ export const useOrganizationStore = create<OrganizationState>()(
       fetchOrganizations: async () => {
         // The API currently only supports single organization per user
         // Organizations are provided in the login response
-        console.log('📋 Organization: Using single organization model (no multi-tenant support yet)');
         set({ isLoadingOrganizations: false });
       },
 
       fetchCurrentOrganization: async () => {
         // Skip API call since organization data is provided in login response
         // This prevents 404/401 errors when organization endpoints aren't available
-        console.log('📋 Organization: Using organization from auth context');
       },
 
       fetchMembers: async () => {

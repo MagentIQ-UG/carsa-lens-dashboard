@@ -25,10 +25,10 @@ export default function LandingPage() {
               <span className="text-2xl font-bold text-gray-900">CARSA Lens</span>
             </div>
             <div className="flex items-center space-x-4">
-              <Link href="/login">
+              <Link href="/auth/login">
                 <Button variant="outline">Sign In</Button>
               </Link>
-              <Link href="/login">
+              <Link href="/auth/register">
                 <Button>Get Started</Button>
               </Link>
             </div>
@@ -49,9 +49,9 @@ export default function LandingPage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-            <Link href="/login">
+            <Link href="/auth/register">
               <Button size="lg" className="w-full sm:w-auto">
-                Start Free Trial
+                Get Started
               </Button>
             </Link>
             <Link href="#features">
@@ -112,7 +112,7 @@ export default function LandingPage() {
           <p className="text-lg text-gray-600 mb-8">
             Join leading companies using CARSA Lens for their recruitment needs.
           </p>
-          <Link href="/login">
+          <Link href="/auth/register">
             <Button size="lg">
               Get Started Today
             </Button>

@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering for this protected page
+export const dynamic = 'force-dynamic';
+
 import { AdminRoute } from '@/components/auth/protected-route';
 import { useAuth } from '@/lib/auth/context';
 

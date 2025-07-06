@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering for this page since it uses query params and auth context
+export const dynamic = 'force-dynamic';
+
 import { Building2, CheckCircle, XCircle, Clock, Mail, Shield } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback, Suspense } from 'react';
@@ -13,9 +16,6 @@ import toast from 'react-hot-toast';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { UserRole } from '@/types/api';
-
-// Force dynamic rendering since this page uses search params
-export const dynamic = 'force-dynamic';
 
 interface InvitationDetails {
   id: string;

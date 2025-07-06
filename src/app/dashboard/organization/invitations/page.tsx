@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering since this page uses auth context
+export const dynamic = 'force-dynamic';
+
 import { ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -14,9 +17,6 @@ import { InvitationManagement } from '@/components/organization/invitation-manag
 import { InviteUserModal } from '@/components/organization/invite-user-modal';
 import { CompactOrganizationSwitcher } from '@/components/organization/organization-switcher';
 import { Button } from '@/components/ui/button';
-
-// Force dynamic rendering since this page uses auth context
-export const dynamic = 'force-dynamic';
 
 function OrganizationInvitationsContent() {
   const router = useRouter();

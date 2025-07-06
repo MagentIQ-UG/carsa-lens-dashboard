@@ -26,36 +26,36 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <AuthProvider>
-          <OrganizationProvider>
-            <QueryProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <OrganizationProvider>
               {children}
-            <Toaster
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#fff',
-                  color: '#374151',
-                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#059669',
-                    secondary: '#fff',
+              <Toaster
+                position="top-right"
+                toastOptions={{
+                  duration: 4000,
+                  style: {
+                    background: '#fff',
+                    color: '#374151',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                   },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#dc2626',
-                    secondary: '#fff',
+                  success: {
+                    iconTheme: {
+                      primary: '#059669',
+                      secondary: '#fff',
+                    },
                   },
-                },
-              }}
-            />
-            </QueryProvider>
-          </OrganizationProvider>
-        </AuthProvider>
+                  error: {
+                    iconTheme: {
+                      primary: '#dc2626',
+                      secondary: '#fff',
+                    },
+                  },
+                }}
+              />
+            </OrganizationProvider>
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

@@ -5,6 +5,9 @@
 
 'use client';
 
+// Force dynamic rendering since this page uses auth context
+export const dynamic = 'force-dynamic';
+
 import { AuthenticatedRoute } from '@/components/auth/protected-route';
 import { CompactOrganizationOverview } from '@/components/organization/organization-overview';
 import { OrganizationSwitcher } from '@/components/organization/organization-switcher';

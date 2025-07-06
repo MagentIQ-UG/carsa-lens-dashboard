@@ -6,9 +6,9 @@
 
 import React from 'react';
 
-import { cn } from '@/lib/utils';
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface PageHeaderProps {
   title: string;
@@ -81,7 +81,7 @@ interface HeaderActionsProps {
   secondaryActions?: Array<{
     label: string;
     onClick: () => void;
-    variant?: 'default' | 'outline' | 'ghost';
+    variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
     disabled?: boolean;
   }>;
 }

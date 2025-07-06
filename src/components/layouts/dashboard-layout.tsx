@@ -4,7 +4,6 @@
  * Responsive design with mobile support
  */
 
-import React, { useState } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -15,11 +14,12 @@ import {
   Building2,
   UserPlus
 } from 'lucide-react';
+import React, { useState } from 'react';
 
-import { cn } from '@/lib/utils';
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { TopNavigation } from '@/components/ui/navigation';
 import { Sidebar, SidebarItem } from '@/components/ui/sidebar';
+import { cn } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -127,9 +127,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const userMenuProps = {
     user: mockUser,
-    onLogout: () => console.log('Logout clicked'),
-    onSettings: () => console.log('Settings clicked'),
-    onProfile: () => console.log('Profile clicked')
+    onLogout: () => {/* TODO: Implement logout */},
+    onSettings: () => {/* TODO: Implement settings */},
+    onProfile: () => {/* TODO: Implement profile */}
   };
 
   return (

@@ -8,26 +8,25 @@
 // Force dynamic rendering since this page uses auth context
 export const dynamic = 'force-dynamic';
 
-import { AuthenticatedRoute } from '@/components/auth/protected-route';
-import { DashboardLayout } from '@/components/layouts/dashboard-layout';
-import { MetricsCard } from '@/components/ui/metrics-card';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Container } from '@/components/ui/container';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CompactOrganizationOverview } from '@/components/organization/organization-overview';
-import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
-import { useAuth } from '@/lib/auth/context';
-import { useOrganization } from '@/lib/organization/context';
 import { 
   Users, 
   Briefcase, 
   ClipboardList, 
   BarChart3, 
-  TrendingUp,
-  TrendingDown,
   Activity
 } from 'lucide-react';
+
+import { AuthenticatedRoute } from '@/components/auth/protected-route';
+import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { CompactOrganizationOverview } from '@/components/organization/organization-overview';
+import { OrganizationSwitcher } from '@/components/organization/organization-switcher';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Container } from '@/components/ui/container';
+import { MetricsCard } from '@/components/ui/metrics-card';
+import { useAuth } from '@/lib/auth/context';
+import { useOrganization } from '@/lib/organization/context';
 
 function DashboardContent() {
   const { user } = useAuth();
@@ -119,7 +118,7 @@ function DashboardContent() {
                 <h2 className="text-lg font-semibold text-gray-900">
                   Your Profile
                 </h2>
-                <Badge variant={user?.is_active ? 'success' : 'destructive'}>
+                <Badge variant={user?.is_active ? 'success' : 'error'}>
                   {user?.is_active ? 'Active' : 'Inactive'}
                 </Badge>
               </div>
@@ -139,7 +138,7 @@ function DashboardContent() {
                   <span className="text-sm font-medium">{user?.email}</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="default" className="text-xs">
                     {user?.role}
                   </Badge>
                 </div>

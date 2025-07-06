@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,8 @@ interface PasswordResetFormProps {
   onSuccess?: () => void;
 }
 
-export function PasswordResetForm({ onSuccess }: PasswordResetFormProps) {
+// Separate component that uses useSearchParams to be wrapped in Suspense
+function PasswordResetFormContent({ onSuccess }: PasswordResetFormProps) {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const isResetMode = Boolean(token);
@@ -341,5 +342,21 @@ function RateLimitIndicator({ email }: { email: string }) {
       {limitInfo.remaining} reset attempt{limitInfo.remaining !== 1 ? 's' : ''} remaining.
       Resets at {resetTime.toLocaleTimeString()}.
     </p>
+  );
+}
+
+// Main export wrapped in Suspense to handle useSearchParams
+export function PasswordResetForm({ onSuccess }: PasswordResetFormProps) {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          <p className="text-sm text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <PasswordResetFormContent onSuccess={onSuccess} />
+    </Suspense>
   );
 }

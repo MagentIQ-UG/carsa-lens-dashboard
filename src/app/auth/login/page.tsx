@@ -9,26 +9,127 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 import { LoginForm } from '@/components/forms/login-form';
 import { useAuth } from '@/lib/auth/context';
 
 export default function LoginPage() {
   const router = useRouter();
+  const pathname = usePathname();
   const { isAuthenticated, initialized } = useAuth();
+  const [hasRedirected, setHasRedirected] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  // Redirect authenticated users to dashboard
+  // Debug logging
   useEffect(() => {
-    if (initialized && isAuthenticated) {
-      router.push('/dashboard');
-    }
-  }, [initialized, isAuthenticated, router]);
+    console.log('🔍 Login page state:', { 
+      initialized, 
+      isAuthenticated, 
+      hasRedirected,
+      isRedirecting
+    });
+  }, [initialized, isAuthenticated, hasRedirected, isRedirecting]);
 
-  // Don't render login form if already authenticated
-  if (initialized && isAuthenticated) {
-    return null;
+  // Redirect authenticated users to dashboard - but only once
+  useEffect(() => {
+    if (initialized && isAuthenticated && !hasRedirected && !isRedirecting) {
+      console.log('🔄 Starting redirect to dashboard...');
+      setIsRedirecting(true);
+      setHasRedirected(true);
+      
+      // Immediate redirect with multiple fallback strategies
+      const performRedirect = async () => {
+        console.log('🚀 Attempting immediate redirect to /dashboard');
+        
+        // Check if cookie exists before redirecting
+        const cookies = document.cookie;
+        const authCookie = cookies.split('; ').find(row => row.startsWith('auth_token='));
+        console.log('🍪 Pre-redirect cookie check:', { 
+          hasCookie: !!authCookie,
+          cookiePreview: authCookie?.substring(0, 30) + '...'
+        });
+        
+        // Track if redirect succeeded
+        let hasRedirected = false;
+        
+        // Strategy 1: Use Next.js router
+        try {
+          console.log('📍 Current pathname:', pathname);
+          router.replace('/dashboard');
+          console.log('✅ Router.replace executed successfully');
+          
+          // Check if we're still on the login page after 300ms
+          setTimeout(() => {
+            if (!hasRedirected && window.location.pathname === '/auth/login') {
+              console.log('⚠️ Still on login page, using window.location.replace');
+              hasRedirected = true;
+              window.location.replace('/dashboard');
+            }
+          }, 300);
+          
+        } catch (error) {
+          console.error('❌ Router.replace failed:', error);
+          // Immediate fallback to window.location
+          console.log('🔄 Using window.location.replace fallback');
+          hasRedirected = true;
+          window.location.replace('/dashboard');
+        }
+        
+        // Strategy 2: Aggressive fallback - check every 500ms
+        const fallbackInterval = setInterval(() => {
+          if (!hasRedirected && window.location.pathname === '/auth/login') {
+            console.log('🔄 Aggressive fallback - using window.location.href');
+            hasRedirected = true;
+            clearInterval(fallbackInterval);
+            window.location.href = '/dashboard';
+          } else if (window.location.pathname !== '/auth/login') {
+            // Successfully navigated away
+            hasRedirected = true;
+            clearInterval(fallbackInterval);
+            console.log('✅ Successfully navigated away from login page');
+          }
+        }, 500);
+        
+        // Strategy 3: Final fallback after 2 seconds
+        setTimeout(() => {
+          if (!hasRedirected && window.location.pathname === '/auth/login') {
+            console.log('🚨 Final fallback - forcing navigation');
+            hasRedirected = true;
+            clearInterval(fallbackInterval);
+            window.location.href = '/dashboard';
+          }
+        }, 2000);
+      };
+      
+      // Execute immediately
+      performRedirect();
+    }
+  }, [initialized, isAuthenticated, router, hasRedirected, isRedirecting, pathname]);
+
+  // Show loading state while checking authentication
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirecting state if authenticated or redirecting
+  if (isAuthenticated || isRedirecting) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -55,9 +156,7 @@ export default function LoginPage() {
           </p>
         </div>
         
-        <LoginForm 
-          onSuccess={() => router.push('/dashboard')}
-        />
+        <LoginForm />
       </div>
     </div>
   );

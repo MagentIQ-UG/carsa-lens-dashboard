@@ -33,15 +33,21 @@ export interface TokenResponse {
   refresh_token: string;
   token_type: string;
   expires_in: number;
-}
-
-export interface LoginResponse extends TokenResponse {
-  user: UserResponse;
-}
-
-export interface RegistrationResponse extends TokenResponse {
   user: UserResponse;
   organization: OrganizationResponse;
+}
+
+export interface LoginResponse {
+  message: string;
+  tokens: TokenResponse;
+  requires_verification: boolean;
+}
+
+export interface RegistrationResponse {
+  message: string;
+  user: UserResponse;
+  organization: OrganizationResponse;
+  verification_sent: boolean;
 }
 
 export interface RefreshTokenRequest {

@@ -103,7 +103,13 @@ export function extractToken(request: NextRequest): string | null {
     return authHeader.substring(7);
   }
 
-  // Try access token cookie (if using cookie-based storage)
+  // Try auth token cookie
+  const authToken = request.cookies.get('auth_token');
+  if (authToken) {
+    return authToken.value;
+  }
+
+  // Try access token cookie (fallback)
   const accessToken = request.cookies.get('access_token');
   if (accessToken) {
     return accessToken.value;

@@ -25,25 +25,49 @@ interface ApiError {
 
 // Login mutation
 export function useLogin() {
-  const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (response: LoginResponse) => {
+      console.log('🎉 Login successful, response:', { 
+        hasAccessToken: !!response.tokens?.access_token, 
+        hasUser: !!response.tokens?.user,
+        tokenPreview: response.tokens?.access_token?.substring(0, 20) + '...',
+        requiresVerification: response.requires_verification
+      });
+
       // Store tokens in memory via Zustand
       setAuth({
-        accessToken: response.access_token,
-        user: response.user,
+        accessToken: response.tokens.access_token,
+        user: response.tokens.user,
         isAuthenticated: true,
+      });
+
+      // Store token in cookie for middleware access
+      const isHttps = location.protocol === 'https:';
+      const cookieValue = `auth_token=${response.tokens.access_token}; path=/; SameSite=Strict${isHttps ? '; Secure' : ''}`;
+      document.cookie = cookieValue;
+      console.log('🍪 Cookie set:', { 
+        isHttps, 
+        cookieString: cookieValue.substring(0, 50) + '...' 
+      });
+      
+      // Verify cookie was set
+      const cookies = document.cookie;
+      const authCookie = cookies.split('; ').find(row => row.startsWith('auth_token='));
+      console.log('🔍 Cookie verification:', { 
+        foundCookie: !!authCookie, 
+        cookiePreview: authCookie?.substring(0, 30) + '...' 
       });
 
       // Invalidate and refetch user session
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
       
       toast.success('Welcome back!');
-      router.push('/dashboard');
+      
+      // Don't redirect here - let the login page handle it to prevent conflicts
     },
     onError: (error: ApiError) => {
       const message = error?.response?.data?.detail || 'Login failed. Please try again.';
@@ -113,6 +137,9 @@ export function useLogout() {
       // Clear auth state
       clearAuth();
       
+      // Clear auth cookie
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
       // Clear all queries
       queryClient.clear();
       
@@ -122,6 +149,10 @@ export function useLogout() {
     onError: () => {
       // Even if logout fails on server, clear local state
       clearAuth();
+      
+      // Clear auth cookie
+      document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
       queryClient.clear();
       router.push('/login');
     },
@@ -139,10 +170,14 @@ export function useRefreshToken() {
     onSuccess: (response: LoginResponse) => {
       // Update tokens in store
       setAuth({
-        accessToken: response.access_token,
-        user: response.user,
+        accessToken: response.tokens.access_token,
+        user: response.tokens.user,
         isAuthenticated: true,
       });
+
+      // Update token in cookie
+      const isHttps = location.protocol === 'https:';
+      document.cookie = `auth_token=${response.tokens.access_token}; path=/; SameSite=Strict${isHttps ? '; Secure' : ''}`;
 
       // Invalidate auth queries
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.me() });
@@ -191,8 +226,8 @@ export function useSwitchOrganization() {
     onSuccess: (response: LoginResponse) => {
       // Update tokens and user info
       setAuth({
-        accessToken: response.access_token,
-        user: response.user,
+        accessToken: response.tokens.access_token,
+        user: response.tokens.user,
         isAuthenticated: true,
       });
 

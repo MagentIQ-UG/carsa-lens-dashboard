@@ -57,12 +57,39 @@ export const useAuthStore = create<AuthState>()(
 
       // Actions
       setAuth: (auth) => {
-        set((state) => ({
-          ...state,
-          accessToken: auth.accessToken ?? state.accessToken,
-          user: auth.user ?? state.user,
-          isAuthenticated: auth.isAuthenticated ?? state.isAuthenticated,
-        }));
+        set((state) => {
+          // Prevent unnecessary updates if values haven't changed
+          const shouldUpdate = (
+            (auth.accessToken !== undefined && auth.accessToken !== state.accessToken) ||
+            (auth.user !== undefined && JSON.stringify(auth.user) !== JSON.stringify(state.user)) ||
+            (auth.isAuthenticated !== undefined && auth.isAuthenticated !== state.isAuthenticated)
+          );
+          
+          if (!shouldUpdate) {
+            console.log('🔄 Auth setAuth: no change needed');
+            return state; // No change needed
+          }
+          
+          console.log('🔄 Auth setAuth: updating state', { 
+            currentAuth: state.isAuthenticated,
+            newAuth: auth.isAuthenticated,
+            hasToken: !!auth.accessToken 
+          });
+          
+          const newState = { ...state };
+          
+          if (auth.accessToken !== undefined) {
+            newState.accessToken = auth.accessToken;
+          }
+          if (auth.user !== undefined) {
+            newState.user = auth.user;
+          }
+          if (auth.isAuthenticated !== undefined) {
+            newState.isAuthenticated = auth.isAuthenticated;
+          }
+          
+          return newState;
+        });
       },
 
       clearAuth: () => {
@@ -122,8 +149,8 @@ export const useAuthStore = create<AuthState>()(
 
           set({
             isAuthenticated: true,
-            accessToken: response.access_token,
-            user: response.user,
+            accessToken: response.tokens.access_token,
+            user: response.tokens.user,
             isLoading: false,
           });
         } catch (error) {
@@ -147,8 +174,8 @@ export const useAuthStore = create<AuthState>()(
           });
 
           set({
-            isAuthenticated: true,
-            accessToken: response.access_token,
+            isAuthenticated: false, // Registration doesn't authenticate, user needs to verify email
+            accessToken: null,
             user: response.user,
             isLoading: false,
           });

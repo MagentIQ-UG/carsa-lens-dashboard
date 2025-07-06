@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, ReactNode, useState } from 'react';
+import { createContext, useContext, useEffect, ReactNode, useState, useRef } from 'react';
 
 import { initAuthStore, initAuthCallbacks } from '@/lib/api/client';
 import { useLogin, useRegister, useLogout, useRefreshToken } from '@/lib/hooks/auth';
@@ -29,6 +29,7 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [initialized, setInitialized] = useState(false);
+  const initRef = useRef(false);
   const { user, isAuthenticated, isLoading, setAuth, clearAuth, hasRole, hasPermission } = useAuthStore();
   
   // Use mutation hooks from auth hooks
@@ -39,24 +40,86 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Initialize API client with auth store on mount
   useEffect(() => {
+    if (initRef.current) return; // Prevent double initialization
+    
     const initializeSecurity = async () => {
       try {
-        // Initialize auth store
+        initRef.current = true;
+        
+        // Initialize auth store first
         initAuthStore(useAuthStore.getState);
         
         // Set up auth callbacks for token refresh and clear
         initAuthCallbacks(
           (token: string) => {
             setAuth({ accessToken: token });
+            // Update cookie as well
+            const isHttps = location.protocol === 'https:';
+            document.cookie = `auth_token=${token}; path=/; SameSite=Strict${isHttps ? '; Secure' : ''}`;
           },
           () => {
             clearAuth();
+            // Clear cookie as well
+            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           }
         );
 
         // Initialize CSRF protection
         await initCSRFProtection();
         
+        // Check for existing auth token in cookies and restore session
+        const authToken = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('auth_token='))
+          ?.split('=')[1];
+        
+        if (authToken) {
+          console.log('🔑 Found existing auth token, validating session');
+          
+          try {
+            // First, do a basic JWT validation to check if token is expired
+            const payload = JSON.parse(atob(authToken.split('.')[1]));
+            const isExpired = payload.exp * 1000 < Date.now();
+            
+            if (isExpired) {
+              console.log('🔑 Auth token expired, clearing cookie');
+              document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            } else {
+              // Token appears valid, set temporary auth state with just the token
+              console.log('🔑 Token appears valid, temporarily setting auth state');
+              setAuth({ 
+                accessToken: authToken,
+                isAuthenticated: true
+              });
+              
+              // Try to validate the token and get user data using /auth/me
+              try {
+                const { authApi } = await import('@/lib/api/auth');
+                const sessionInfo = await authApi.getMe();
+                
+                console.log('🔑 Successfully validated token and got user session');
+                // Update auth state with complete user data
+                setAuth({
+                  accessToken: authToken,
+                  isAuthenticated: true,
+                  user: sessionInfo // SessionInfo extends UserResponse
+                });
+              } catch (meError) {
+                console.log('🔑 Failed to validate token with /auth/me, token might be invalid:', meError);
+                // If getting user session fails, clear the auth state and cookie
+                clearAuth();
+                document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+              }
+            }
+          } catch (e) {
+            console.log('🔑 Invalid auth token format, clearing cookie', e);
+            document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+          }
+        } else {
+          console.log('🔑 No existing auth token found');
+        }
+        
+        // Mark as initialized
         setInitialized(true);
       } catch (error) {
         console.error('Failed to initialize security:', error);

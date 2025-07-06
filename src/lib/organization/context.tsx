@@ -47,19 +47,11 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
   // Initialize organization data when user is authenticated
   useEffect(() => {
     if (initialized && isAuthenticated && user) {
-      // Fetch organizations and current organization
-      const initializeOrganizations = async () => {
-        try {
-          await Promise.all([
-            fetchOrganizations(),
-            fetchCurrentOrganization(),
-          ]);
-        } catch (error) {
-          console.error('Failed to initialize organization data:', error);
-        }
-      };
-
-      initializeOrganizations();
+      // For now, we'll skip fetching organization data since:
+      // 1. The API spec shows limited organization endpoints
+      // 2. Organization data is already available in the login response
+      // 3. This prevents API errors from cluttering the console
+      console.log('📋 Organization: Ready (using auth context data)');
     } else if (initialized && !isAuthenticated) {
       // Clear organization data when user logs out
       clearOrganizationData();
@@ -68,8 +60,6 @@ export function OrganizationProvider({ children }: OrganizationProviderProps) {
     initialized,
     isAuthenticated,
     user,
-    fetchOrganizations,
-    fetchCurrentOrganization,
     clearOrganizationData,
   ]);
 

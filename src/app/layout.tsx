@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 import "./globals.css";
 
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { AuthProvider } from "@/lib/auth/context";
 import { OrganizationProvider } from "@/lib/organization/context";
 import { QueryProvider } from "@/lib/query/provider";
@@ -26,36 +27,38 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased`}>
-        <QueryProvider>
-          <AuthProvider>
-            <OrganizationProvider>
-              {children}
-              <Toaster
-                position="top-right"
-                toastOptions={{
-                  duration: 4000,
-                  style: {
-                    background: '#fff',
-                    color: '#374151',
-                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-                  },
-                  success: {
-                    iconTheme: {
-                      primary: '#059669',
-                      secondary: '#fff',
+        <ErrorBoundary>
+          <QueryProvider>
+            <AuthProvider>
+              <OrganizationProvider>
+                {children}
+                <Toaster
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: '#fff',
+                      color: '#374151',
+                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
                     },
-                  },
-                  error: {
-                    iconTheme: {
-                      primary: '#dc2626',
-                      secondary: '#fff',
+                    success: {
+                      iconTheme: {
+                        primary: '#059669',
+                        secondary: '#fff',
+                      },
                     },
-                  },
-                }}
-              />
-            </OrganizationProvider>
-          </AuthProvider>
-        </QueryProvider>
+                    error: {
+                      iconTheme: {
+                        primary: '#dc2626',
+                        secondary: '#fff',
+                      },
+                    },
+                  }}
+                />
+              </OrganizationProvider>
+            </AuthProvider>
+          </QueryProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

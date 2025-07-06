@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import { RegistrationForm } from '@/components/forms/registration-form';
 import { useAuth } from '@/lib/auth/context';
@@ -18,17 +18,43 @@ import { useAuth } from '@/lib/auth/context';
 export default function RegisterPage() {
   const router = useRouter();
   const { isAuthenticated, initialized } = useAuth();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users to dashboard - but only once
   useEffect(() => {
-    if (initialized && isAuthenticated) {
-      router.push('/dashboard');
+    if (initialized && isAuthenticated && !hasRedirected) {
+      setHasRedirected(true);
+      // Use a timeout to prevent race conditions
+      const timer = setTimeout(() => {
+        router.replace('/dashboard');
+      }, 100);
+      
+      return () => clearTimeout(timer);
     }
-  }, [initialized, isAuthenticated, router]);
+  }, [initialized, isAuthenticated, router, hasRedirected]);
 
-  // Don't render registration form if already authenticated
-  if (initialized && isAuthenticated) {
-    return null;
+  // Show loading state while checking authentication
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirecting state if authenticated
+  if (isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (

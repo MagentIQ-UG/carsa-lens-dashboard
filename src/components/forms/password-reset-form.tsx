@@ -324,10 +324,13 @@ function RateLimitIndicator({ email }: { email: string }) {
   const { getLimit } = useRateLimit();
   const [limitInfo, setLimitInfo] = useState<{ remaining: number; resetTime: number } | null>(null);
 
+  // Update limit info only when email changes
   React.useEffect(() => {
     if (email) {
       const info = getLimit(`password-reset:${email}`);
       setLimitInfo(info);
+    } else {
+      setLimitInfo(null);
     }
   }, [email, getLimit]);
 

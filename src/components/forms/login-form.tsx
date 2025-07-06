@@ -20,10 +20,9 @@ import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
 
 interface LoginFormProps {
   onSuccess?: () => void;
-  redirectTo?: string;
 }
 
-export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormProps) {
+export function LoginForm({ onSuccess }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -40,8 +39,8 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: 'demo@example.com',
+      password: 'TestPassword123!',
       rememberMe: false,
     },
   });
@@ -65,19 +64,16 @@ export function LoginForm({ onSuccess, redirectTo = '/dashboard' }: LoginFormPro
         return;
       }
 
-      // Attempt login
+      // Attempt login - the useLogin hook will handle the redirect
       await login({
         email: data.email,
         password: data.password,
         remember_me: data.rememberMe,
       });
 
-      // Success
+      // Success callback for any custom logic (but not navigation)
       if (onSuccess) {
         onSuccess();
-      } else {
-        // Redirect will be handled by auth context
-        window.location.href = redirectTo;
       }
     } catch (error) {
       const errorMessage = formatErrorMessage(error);
@@ -248,10 +244,13 @@ function RateLimitIndicator({ email }: { email: string }) {
   const { getLimit } = useRateLimit();
   const [limitInfo, setLimitInfo] = useState<{ remaining: number; resetTime: number } | null>(null);
 
+  // Update limit info only when email changes
   React.useEffect(() => {
     if (email) {
       const info = getLimit(`login:${email}`);
       setLimitInfo(info);
+    } else {
+      setLimitInfo(null);
     }
   }, [email, getLimit]);
 

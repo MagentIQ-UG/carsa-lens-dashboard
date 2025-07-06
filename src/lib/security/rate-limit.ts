@@ -3,6 +3,8 @@
  * Prevents abuse by limiting the number of requests per time window
  */
 
+import React from 'react';
+
 import { SECURITY_CONFIG } from '@/lib/config/security';
 
 interface RateLimitEntry {
@@ -185,16 +187,18 @@ export const rateLimiter = new RateLimiter();
  * Rate limiting hook for components
  */
 export const useRateLimit = () => {
-  const checkLogin = (email: string) => rateLimiter.checkLoginLimit(email);
-  const checkAPI = (endpoint: string) => rateLimiter.checkAPILimit(endpoint);
-  const checkPasswordReset = (email: string) => rateLimiter.checkPasswordResetLimit(email);
+  const checkLogin = React.useCallback((email: string) => rateLimiter.checkLoginLimit(email), []);
+  const checkAPI = React.useCallback((endpoint: string) => rateLimiter.checkAPILimit(endpoint), []);
+  const checkPasswordReset = React.useCallback((email: string) => rateLimiter.checkPasswordResetLimit(email), []);
+  const getLimit = React.useCallback((identifier: string) => rateLimiter.getLimit(identifier), []);
+  const clear = React.useCallback((identifier: string) => rateLimiter.clear(identifier), []);
 
   return {
     checkLogin,
     checkAPI,
     checkPasswordReset,
-    getLimit: rateLimiter.getLimit.bind(rateLimiter),
-    clear: rateLimiter.clear.bind(rateLimiter),
+    getLimit,
+    clear,
   };
 };
 

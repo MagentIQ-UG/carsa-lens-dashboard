@@ -56,7 +56,6 @@ export default function ForgotPasswordPage() {
         </div>
         
         <PasswordResetForm 
-          mode="request"
           onSuccess={() => {
             // Show success message or redirect
             router.push('/auth/login?message=password-reset-sent');

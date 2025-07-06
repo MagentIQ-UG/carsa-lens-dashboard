@@ -65,8 +65,6 @@ function ResetPasswordContent() {
         </div>
         
         <PasswordResetForm 
-          mode="reset"
-          token={token}
           onSuccess={() => {
             router.push('/auth/login?message=password-reset-success');
           }}

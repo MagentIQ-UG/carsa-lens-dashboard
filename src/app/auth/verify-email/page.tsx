@@ -9,7 +9,7 @@
 export const dynamic = 'force-dynamic';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect, Suspense } from 'react';
 
 import { EmailVerificationForm } from '@/components/forms/email-verification-form';
@@ -17,10 +17,7 @@ import { useAuth } from '@/lib/auth/context';
 
 function VerifyEmailContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { isAuthenticated, initialized } = useAuth();
-  
-  const token = searchParams.get('token');
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -59,7 +56,6 @@ function VerifyEmailContent() {
         </div>
         
         <EmailVerificationForm 
-          token={token}
           onSuccess={() => {
             router.push('/auth/login?message=email-verified');
           }}

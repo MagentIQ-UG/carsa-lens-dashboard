@@ -21,7 +21,6 @@ import { useRouter } from 'next/navigation';
 import React, { useState, useMemo, useCallback } from 'react';
 
 import { JobCard } from '@/components/jobs/job-card';
-import { JobWizard } from '@/components/jobs/job-wizard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -97,7 +96,6 @@ export function JobList({ className }: JobListProps) {
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [showWizard, setShowWizard] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   // const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null);
   // const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -284,7 +282,7 @@ export function JobList({ className }: JobListProps) {
             Export
           </Button>
           
-          <Button onClick={() => setShowWizard(true)}>
+          <Button onClick={() => router.push('/dashboard/jobs/create')}>
             <Plus className="h-4 w-4 mr-2" />
             Create Job
           </Button>
@@ -501,7 +499,7 @@ export function JobList({ className }: JobListProps) {
               }
             </p>
             {jobs.length === 0 ? (
-              <Button onClick={() => setShowWizard(true)}>
+              <Button onClick={() => router.push('/dashboard/jobs/create')}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create Your First Job
               </Button>
@@ -535,14 +533,6 @@ export function JobList({ className }: JobListProps) {
         </div>
       )}
 
-      {/* Job Creation Wizard */}
-      <JobWizard
-        isOpen={showWizard}
-        onClose={() => setShowWizard(false)}
-        onSuccess={() => {
-          refetch();
-        }}
-      />
     </Container>
   );
 }

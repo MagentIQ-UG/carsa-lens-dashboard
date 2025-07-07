@@ -12,6 +12,10 @@ import {
   JobResponse,
   JobFilters,
   JobDescriptionResponse,
+  JDGenerationRequest,
+  JDEnhancementRequest,
+  JDUploadResponse,
+  JDEnhancementResponse,
 } from '@/types/api';
 
 // Query keys
@@ -134,9 +138,9 @@ export function useUploadJobDescription() {
       onProgress?: (progress: number) => void; 
     }) => 
       jobsApi.uploadJobDescription(jobId, file, onProgress),
-    onSuccess: (data: JobDescriptionResponse) => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_id) });
-      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job_id) });
+    onSuccess: (data: JDUploadResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_description.job_id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job_description.job_id) });
       toast.success('Job description uploaded successfully!');
     },
     onError: (error: any) => {
@@ -157,13 +161,7 @@ export function useGenerateJobDescription() {
       aiProvider 
     }: { 
       jobId: string; 
-      data: {
-        title: string;
-        department: string;
-        requirements: string[];
-        responsibilities: string[];
-        custom_instructions?: string;
-      };
+      data: JDGenerationRequest;
       aiProvider?: string;
     }) => 
       jobsApi.generateJobDescription(jobId, data, aiProvider),
@@ -192,16 +190,13 @@ export function useEnhanceJobDescription() {
     }: { 
       jobId: string; 
       jdId: string;
-      data: {
-        enhancement_types: ('clarity' | 'bias_detection' | 'keywords')[];
-        custom_instructions?: string;
-      };
+      data: JDEnhancementRequest;
       aiProvider?: string;
     }) => 
       jobsApi.enhanceJobDescription(jobId, jdId, data, aiProvider),
-    onSuccess: (data: JobDescriptionResponse) => {
-      queryClient.invalidateQueries({ queryKey: jobKeys.description(data.job_id, data.id) });
-      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_id) });
+    onSuccess: (data: JDEnhancementResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.description(data.enhanced_description.job_id, data.enhanced_description.id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.enhanced_description.job_id) });
       toast.success('Job description enhanced successfully!');
     },
     onError: (error: any) => {

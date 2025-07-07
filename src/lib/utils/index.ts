@@ -105,3 +105,41 @@ export function formatFileSize(bytes: number): string {
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
+
+/**
+ * Format currency with proper locale
+ */
+export function formatCurrency(amount: number, currency: string = 'UGX', locale: string = 'en-UG'): string {
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    // Fallback if currency/locale not supported
+    return `${currency} ${amount.toLocaleString()}`;
+  }
+}
+
+/**
+ * Format job type for display
+ */
+export function formatJobType(jobType: string): string {
+  return jobType.split('_').map(word => capitalize(word)).join(' ');
+}
+
+/**
+ * Format job mode for display
+ */
+export function formatJobMode(jobMode: string): string {
+  return jobMode.split('_').map(word => capitalize(word)).join(' ');
+}
+
+/**
+ * Format seniority level for display
+ */
+export function formatSeniorityLevel(level: string): string {
+  return capitalize(level);
+}

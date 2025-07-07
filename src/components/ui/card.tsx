@@ -27,6 +27,10 @@ interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
+interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
+  children: React.ReactNode;
+}
+
 const cardVariants = {
   default: 'bg-white border border-gray-200 shadow-sm',
   outlined: 'bg-white border-2 border-gray-300',
@@ -125,9 +129,27 @@ const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
   }
 );
 
+const CardTitle = React.forwardRef<HTMLHeadingElement, CardTitleProps>(
+  ({ className, children, ...props }, ref) => {
+    return (
+      <h3
+        ref={ref}
+        className={cn(
+          'text-lg font-semibold leading-none tracking-tight text-gray-900',
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </h3>
+    );
+  }
+);
+
 Card.displayName = 'Card';
 CardHeader.displayName = 'CardHeader';
 CardContent.displayName = 'CardContent';
 CardFooter.displayName = 'CardFooter';
+CardTitle.displayName = 'CardTitle';
 
-export { Card, CardHeader, CardContent, CardFooter };
+export { Card, CardHeader, CardContent, CardFooter, CardTitle };

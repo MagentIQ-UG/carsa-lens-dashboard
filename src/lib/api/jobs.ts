@@ -3,6 +3,11 @@ import {
   JobResponse,
   JobFilters,
   JobDescriptionResponse,
+  JDGenerationRequest,
+  JDEnhancementRequest,
+  JDUploadResponse,
+  JDEnhancementResponse,
+  ScorecardGenerationResponse,
 } from '@/types/api';
 
 import { apiGet, apiPost, apiPut, apiDelete, uploadFile } from './client';
@@ -30,18 +35,12 @@ export const jobsApi = {
     jobId: string, 
     file: File,
     onProgress?: (progress: number) => void
-  ): Promise<JobDescriptionResponse> =>
+  ): Promise<JDUploadResponse> =>
     uploadFile(`/jobs/${jobId}/upload-description`, file, {}, onProgress),
 
   generateJobDescription: (
     jobId: string,
-    data: {
-      title: string;
-      department: string;
-      requirements: string[];
-      responsibilities: string[];
-      custom_instructions?: string;
-    },
+    data: JDGenerationRequest,
     aiProvider?: string
   ): Promise<JobDescriptionResponse> =>
     apiPost(`/jobs/${jobId}/generate-description${aiProvider ? `?ai_provider=${aiProvider}` : ''}`, data),
@@ -49,12 +48,9 @@ export const jobsApi = {
   enhanceJobDescription: (
     jobId: string,
     jdId: string,
-    data: {
-      enhancement_types: ('clarity' | 'bias_detection' | 'keywords')[];
-      custom_instructions?: string;
-    },
+    data: JDEnhancementRequest,
     aiProvider?: string
-  ): Promise<JobDescriptionResponse> =>
+  ): Promise<JDEnhancementResponse> =>
     apiPost(`/jobs/${jobId}/descriptions/${jdId}/enhance${aiProvider ? `?ai_provider=${aiProvider}` : ''}`, data),
 
   // Job Description management
@@ -72,8 +68,9 @@ export const jobsApi = {
     jobId: string,
     jdId: string,
     customInstructions?: string
-  ): Promise<{ message: string; scorecard_id: string }> =>
-    apiPost(`/jobs/${jobId}/descriptions/${jdId}/generate-scorecard${customInstructions ? `?custom_instructions=${encodeURIComponent(customInstructions)}` : ''}`),
+  ): Promise<ScorecardGenerationResponse> =>
+    apiPost(`/jobs/${jobId}/descriptions/${jdId}/generate-scorecard`, 
+      customInstructions ? { custom_instructions: customInstructions } : {}),
 
   // Health checks
   checkAIServices: (): Promise<{

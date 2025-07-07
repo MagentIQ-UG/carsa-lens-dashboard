@@ -142,7 +142,105 @@ export interface JobCreateRequest {
   seniority_level: SeniorityLevel;
   salary_min?: number;
   salary_max?: number;
-  salary_currency?: string;
+  salary_currency: string;
+}
+
+// Job Description Generation Types
+export interface JDGenerationRequest {
+  title: string;
+  department?: string;
+  seniority_level: string;
+  job_type: string;
+  job_mode: string;
+  location?: string;
+  company_name?: string;
+  company_description?: string;
+  key_responsibilities: string[];
+  required_skills: string[];
+  preferred_skills: string[];
+  benefits: string[];
+  salary_range?: string;
+  custom_instructions?: string;
+}
+
+// Job Description Enhancement Types
+export interface JDEnhancementRequest {
+  enhancement_types: ('clarity' | 'bias_detection' | 'keywords')[];
+  custom_instructions?: string;
+  target_audience?: string;
+}
+
+export interface BiasFlag {
+  type: string;
+  severity: 'low' | 'medium' | 'high';
+  text: string;
+  suggestion: string;
+  line_number?: number;
+}
+
+export interface EnhancementSuggestion {
+  type: string;
+  original_text: string;
+  suggested_text: string;
+  reason: string;
+  confidence: number;
+}
+
+export interface JDAnalysisResult {
+  enhanced_content: string;
+  bias_flags: BiasFlag[];
+  enhancement_suggestions: EnhancementSuggestion[];
+  keyword_suggestions: string[];
+  clarity_score: number;
+  bias_score: number;
+  overall_quality_score: number;
+}
+
+export interface JDUploadResponse {
+  message: string;
+  job_description: JobDescriptionResponse;
+  storage_info: {
+    storage_path: string;
+    file_size: number;
+    content_type: string;
+  };
+  processing_info: {
+    extraction_errors: string[];
+    confidence_score?: number;
+    processing_method: string;
+  };
+}
+
+export interface JDEnhancementResponse {
+  message: string;
+  enhanced_description: JobDescriptionResponse;
+  analysis: {
+    clarity_score: number;
+    bias_score: number;
+    overall_quality_score: number;
+    bias_flags_count: number;
+    enhancement_suggestions_count: number;
+    keyword_suggestions: string[];
+  };
+}
+
+export interface ScorecardGenerationResponse {
+  message: string;
+  scorecard: {
+    id: string;
+    name: string;
+    criteria_count: number;
+    storage_path: string;
+    total_weight: number;
+    is_active: boolean;
+    created_at: string;
+  };
+  criteria_summary: Array<{
+    name: string;
+    category: string;
+    importance: string;
+    weight: number;
+  }>;
 }
 
 export interface JobResponse {
@@ -168,14 +266,25 @@ export interface JobResponse {
 
 export interface JobDescriptionResponse {
   id: string;
-  job_id: string;
-  title: string;
   content: string;
+  title?: string;
+  source: 'generated' | 'uploaded' | 'manual' | 'enhanced';
   version: number;
-  is_active: boolean;
-  processing_status: ProcessingStatus;
-  extraction_metadata?: Record<string, unknown>;
-  enhancement_metadata?: Record<string, unknown>;
+  is_current: boolean;
+  ai_provider?: string;
+  ai_model?: string;
+  confidence_score?: number;
+  enhancement_applied: boolean;
+  bias_checked: boolean;
+  structured_data: Record<string, any>;
+  enhancement_suggestions: Array<Record<string, any>>;
+  bias_flags: Array<Record<string, any>>;
+  keyword_suggestions: string[];
+  job_id: string;
+  created_by_id?: string;
+  original_filename?: string;
+  file_size?: number;
+  processing_method?: string;
   created_at: string;
   updated_at: string;
 }

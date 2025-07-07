@@ -29,11 +29,9 @@ export const initAuthCallbacks = (
 };
 
 // Get auth store - this is safe to import in API client
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let getAuthStore: (() => any) | null = null;
 
 // Initialize auth store getter (keeping for backward compatibility)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const initAuthStore = (storeGetter: () => any) => {
   getAuthStore = storeGetter;
 };

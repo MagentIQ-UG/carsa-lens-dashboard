@@ -23,7 +23,6 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       // Retry mutations on network errors
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       retry: (failureCount, error: any) => {
         // Don't retry on 4xx errors (client errors)
         if (error?.response?.status >= 400 && error?.response?.status < 500) {

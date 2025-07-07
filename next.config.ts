@@ -1,6 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // ESLint configuration for builds
+  eslint: {
+    // Only fail build on errors, not warnings
+    ignoreDuringBuilds: false,
+  },
+  
+  // TypeScript configuration
+  typescript: {
+    // Don't fail build on type errors during build
+    ignoreBuildErrors: false,
+  },
 
   // Security headers
   async headers() {

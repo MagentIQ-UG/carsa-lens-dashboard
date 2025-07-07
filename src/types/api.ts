@@ -143,9 +143,6 @@ export interface JobCreateRequest {
   salary_min?: number;
   salary_max?: number;
   salary_currency?: string;
-  requirements?: string[];
-  responsibilities?: string[];
-  benefits?: string[];
 }
 
 export interface JobResponse {
@@ -161,12 +158,12 @@ export interface JobResponse {
   salary_max?: number;
   salary_currency: string;
   status: JobStatus;
+  is_active: boolean;
   organization_id: string;
   created_by_id: string;
+  job_metadata: Record<string, any>;
   created_at: string;
   updated_at: string;
-  job_descriptions?: JobDescriptionResponse[];
-  scorecards?: ScorecardResponse[];
 }
 
 export interface JobDescriptionResponse {

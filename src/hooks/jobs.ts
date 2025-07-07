@@ -1,0 +1,248 @@
+/**
+ * Job Management Hooks
+ * TanStack Query hooks for job operations
+ */
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
+
+import { jobsApi } from '@/lib/api/jobs';
+import {
+  JobCreateRequest,
+  JobResponse,
+  JobFilters,
+  JobDescriptionResponse,
+} from '@/types/api';
+
+// Query keys
+export const jobKeys = {
+  all: ['jobs'] as const,
+  lists: () => [...jobKeys.all, 'list'] as const,
+  list: (filters: JobFilters | undefined) => [...jobKeys.lists(), filters] as const,
+  details: () => [...jobKeys.all, 'detail'] as const,
+  detail: (id: string) => [...jobKeys.details(), id] as const,
+  descriptions: (jobId: string) => [...jobKeys.detail(jobId), 'descriptions'] as const,
+  description: (jobId: string, jdId: string) => [...jobKeys.descriptions(jobId), jdId] as const,
+} as const;
+
+// Jobs list hook
+export function useJobs(filters?: JobFilters, enabled: boolean = true) {
+  return useQuery({
+    queryKey: jobKeys.list(filters),
+    queryFn: () => jobsApi.listJobs(filters),
+    enabled,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Single job hook
+export function useJob(jobId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: jobKeys.detail(jobId),
+    queryFn: () => jobsApi.getJob(jobId),
+    enabled: enabled && !!jobId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Job descriptions hook
+export function useJobDescriptions(jobId: string, includeHistory: boolean = false, enabled: boolean = true) {
+  return useQuery({
+    queryKey: jobKeys.descriptions(jobId),
+    queryFn: () => jobsApi.listJobDescriptions(jobId, includeHistory),
+    enabled: enabled && !!jobId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+// Single job description hook
+export function useJobDescription(jobId: string, jdId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: jobKeys.description(jobId, jdId),
+    queryFn: () => jobsApi.getJobDescription(jobId, jdId),
+    enabled: enabled && !!jobId && !!jdId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Create job mutation
+export function useCreateJob() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: JobCreateRequest) => jobsApi.createJob(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      toast.success('Job created successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to create job';
+      toast.error(message);
+    },
+  });
+}
+
+// Update job mutation
+export function useUpdateJob() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ jobId, data }: { jobId: string; data: Partial<JobCreateRequest> }) => 
+      jobsApi.updateJob(jobId, data),
+    onSuccess: (data: JobResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      toast.success('Job updated successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to update job';
+      toast.error(message);
+    },
+  });
+}
+
+// Delete job mutation
+export function useDeleteJob() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (jobId: string) => jobsApi.deleteJob(jobId),
+    onSuccess: (_, jobId) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      queryClient.removeQueries({ queryKey: jobKeys.detail(jobId) });
+      toast.success('Job deleted successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to delete job';
+      toast.error(message);
+    },
+  });
+}
+
+// Upload job description mutation
+export function useUploadJobDescription() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      jobId, 
+      file, 
+      onProgress 
+    }: { 
+      jobId: string; 
+      file: File; 
+      onProgress?: (progress: number) => void; 
+    }) => 
+      jobsApi.uploadJobDescription(jobId, file, onProgress),
+    onSuccess: (data: JobDescriptionResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job_id) });
+      toast.success('Job description uploaded successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to upload job description';
+      toast.error(message);
+    },
+  });
+}
+
+// Generate job description mutation
+export function useGenerateJobDescription() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      jobId, 
+      data, 
+      aiProvider 
+    }: { 
+      jobId: string; 
+      data: {
+        title: string;
+        department: string;
+        requirements: string[];
+        responsibilities: string[];
+        custom_instructions?: string;
+      };
+      aiProvider?: string;
+    }) => 
+      jobsApi.generateJobDescription(jobId, data, aiProvider),
+    onSuccess: (data: JobDescriptionResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job_id) });
+      toast.success('Job description generated successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to generate job description';
+      toast.error(message);
+    },
+  });
+}
+
+// Enhance job description mutation
+export function useEnhanceJobDescription() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      jobId, 
+      jdId, 
+      data, 
+      aiProvider 
+    }: { 
+      jobId: string; 
+      jdId: string;
+      data: {
+        enhancement_types: ('clarity' | 'bias_detection' | 'keywords')[];
+        custom_instructions?: string;
+      };
+      aiProvider?: string;
+    }) => 
+      jobsApi.enhanceJobDescription(jobId, jdId, data, aiProvider),
+    onSuccess: (data: JobDescriptionResponse) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.description(data.job_id, data.id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.descriptions(data.job_id) });
+      toast.success('Job description enhanced successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to enhance job description';
+      toast.error(message);
+    },
+  });
+}
+
+// Generate scorecard mutation
+export function useGenerateScorecard() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      jobId, 
+      jdId, 
+      customInstructions 
+    }: { 
+      jobId: string; 
+      jdId: string;
+      customInstructions?: string;
+    }) => 
+      jobsApi.generateScorecard(jobId, jdId, customInstructions),
+    onSuccess: (_, { jobId }) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(jobId) });
+      toast.success('Scorecard generated successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to generate scorecard';
+      toast.error(message);
+    },
+  });
+}
+
+// AI services health check
+export function useAIServicesHealth() {
+  return useQuery({
+    queryKey: ['ai-services', 'health'],
+    queryFn: () => jobsApi.checkAIServices(),
+    staleTime: 30 * 1000, // 30 seconds
+    retry: 3,
+  });
+}

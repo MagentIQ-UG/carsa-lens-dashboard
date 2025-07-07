@@ -24,9 +24,7 @@ export const isAPIError = (error: unknown): error is { message: string; status_c
     typeof error === 'object' &&
     'message' in error &&
     'status_code' in error &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (error as any).message === 'string' &&
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     typeof (error as any).status_code === 'number'
   );
 };

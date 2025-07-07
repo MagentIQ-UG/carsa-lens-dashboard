@@ -14,12 +14,15 @@ import {
   Building2,
   UserPlus
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { Breadcrumbs, BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { TopNavigation } from '@/components/ui/navigation';
 import { Sidebar, SidebarItem } from '@/components/ui/sidebar';
+import { useAuth } from '@/lib/auth/context';
 import { cn } from '@/lib/utils';
+import type { User } from '@/types/api';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -38,6 +41,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   sidebarCollapsed = false,
   onSidebarCollapsedChange
 }) => {
+  const router = useRouter();
+  const { user, logout } = useAuth();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(sidebarCollapsed);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -118,18 +123,57 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     }
   ];
 
-  // Mock user data
-  const mockUser = {
-    name: 'John Doe',
-    email: 'john.doe@company.com',
-    avatar: undefined
+  // Handle logout - the logout hook handles all async operations and error cases
+  const handleLogout = () => {
+    logout();
+    // The logout hook automatically:
+    // - Calls the logout API
+    // - Clears local auth state
+    // - Removes auth cookies
+    // - Clears React Query cache
+    // - Redirects to login page
+    // - Handles errors gracefully
   };
 
+  // Handle navigation actions
+  const handleSettings = () => {
+    router.push('/dashboard/settings');
+  };
+
+  const handleProfile = () => {
+    router.push('/dashboard/profile');
+  };
+
+  // Helper function to safely get user full name
+  const getUserFullName = (user: User | null): string => {
+    if (!user) return 'Loading...';
+    
+    const firstName = user.first_name || '';
+    const lastName = user.last_name || '';
+    
+    if (firstName && lastName) {
+      return `${firstName} ${lastName}`;
+    } else if (firstName) {
+      return firstName;
+    } else if (lastName) {
+      return lastName;
+    } else if (user.email) {
+      return user.email.split('@')[0]; // Use email username as fallback
+    }
+    
+    return 'User';
+  };
+
+  // Use real user data from auth context with safe access
   const userMenuProps = {
-    user: mockUser,
-    onLogout: () => {/* TODO: Implement logout */},
-    onSettings: () => {/* TODO: Implement settings */},
-    onProfile: () => {/* TODO: Implement profile */}
+    user: {
+      name: getUserFullName(user),
+      email: user?.email || 'Loading...',
+      avatar: undefined // TODO: Add avatar support when backend provides it
+    },
+    onLogout: handleLogout,
+    onSettings: handleSettings,
+    onProfile: handleProfile
   };
 
   return (

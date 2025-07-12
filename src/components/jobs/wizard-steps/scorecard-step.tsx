@@ -206,19 +206,11 @@ export function ScorecardStep({
     if (!state.scorecard) return;
 
     try {
-      console.log('Approving scorecard:', {
+      await approveScorecardMutation.mutateAsync({
         scorecardId: state.scorecard.id,
         action: 'approve',
         comment: 'Approved via dashboard'
       });
-      
-      const result = await approveScorecardMutation.mutateAsync({
-        scorecardId: state.scorecard.id,
-        action: 'approve',
-        comment: 'Approved via dashboard'
-      });
-      
-      console.log('Scorecard approved successfully:', result);
       alert('Scorecard approved successfully!');
     } catch (error) {
       console.error('Failed to approve scorecard:', error);
@@ -238,42 +230,191 @@ export function ScorecardStep({
 
   // Handle scorecard content save
   const handleSaveContent = async (content: string) => {
-    if (!state.scorecard) return;
+    if (!state.scorecard || !detailedScorecard || !content.trim()) return;
 
     try {
-      console.log('Saving scorecard content:', {
+      // Parse markdown content to extract any changes to name or description
+      // For now, we'll extract the title (first H1) as potential name changes
+      const lines = content.split('\n');
+      const titleLine = lines.find(line => line.startsWith('# '));
+      const extractedName = titleLine ? titleLine.replace('# ', '').trim() : state.scorecard.name;
+      
+      // Find description section (content between "## Description" and next "##")
+      const descriptionStartIndex = lines.findIndex(line => line.trim() === '## Description');
+      let extractedDescription = detailedScorecard.description || '';
+      
+      if (descriptionStartIndex !== -1) {
+        const descriptionEndIndex = lines.findIndex((line, index) => 
+          index > descriptionStartIndex && line.startsWith('##')
+        );
+        const descriptionLines = lines.slice(
+          descriptionStartIndex + 1, 
+          descriptionEndIndex === -1 ? undefined : descriptionEndIndex
+        );
+        extractedDescription = descriptionLines
+          .filter(line => line.trim() !== '')
+          .join('\n')
+          .trim();
+      }
+
+      // Parse passing score from the content
+      let extractedPassingScore = detailedScorecard.passing_score;
+      
+      // Look for passing score in overview section: "- **Passing Score:** 75"
+      const passingScoreLine = lines.find(line => line.includes('**Passing Score:**'));
+      if (passingScoreLine) {
+        const scoreMatch = passingScoreLine.match(/\*\*Passing Score:\*\*\s*(\d+)/);
+        if (scoreMatch) {
+          const parsedScore = parseInt(scoreMatch[1], 10);
+          // Validate passing score is within bounds (0-100)
+          if (parsedScore >= 0 && parsedScore <= 100) {
+            extractedPassingScore = parsedScore;
+          }
+        }
+      }
+      
+      // Also check the note section: "Candidates must achieve a minimum score of 75"
+      if (!passingScoreLine) {
+        const noteLine = lines.find(line => line.includes('minimum score of') && line.includes('to be considered'));
+        if (noteLine) {
+          const scoreMatch = noteLine.match(/minimum score of (\d+)/);
+          if (scoreMatch) {
+            const parsedScore = parseInt(scoreMatch[1], 10);
+            // Validate passing score is within bounds (0-100)
+            if (parsedScore >= 0 && parsedScore <= 100) {
+              extractedPassingScore = parsedScore;
+            }
+          }
+        }
+      }
+
+      // Parse criteria section for any updates
+      const criteriaStartIndex = lines.findIndex(line => line.trim() === '## Evaluation Criteria');
+      const updatedCriteria = [...(detailedScorecard.criteria || [])];
+      
+      if (criteriaStartIndex !== -1) {
+        const criteriaEndIndex = lines.findIndex((line, index) => 
+          index > criteriaStartIndex && line.startsWith('## ') && !line.startsWith('### ')
+        );
+        const criteriaSection = lines.slice(
+          criteriaStartIndex + 1, 
+          criteriaEndIndex === -1 ? undefined : criteriaEndIndex
+        );
+        
+        // Parse individual criteria (looking for ### headers)
+        let currentCriterionIndex = -1;
+        for (let i = 0; i < criteriaSection.length; i++) {
+          const line = criteriaSection[i];
+          
+          // Match criterion headers like "### 1. Technical Skills"
+          const criterionMatch = line.match(/^### \d+\.\s*(.+)$/);
+          if (criterionMatch) {
+            currentCriterionIndex++;
+            const criterionName = criterionMatch[1].trim();
+            
+            // Update the corresponding criterion name if it exists
+            if (updatedCriteria[currentCriterionIndex]) {
+              updatedCriteria[currentCriterionIndex] = {
+                ...updatedCriteria[currentCriterionIndex],
+                name: criterionName,
+                criterion_name: criterionName
+              };
+            }
+          }
+          
+          // Look for description updates (content after criterion header, before next section)
+          if (currentCriterionIndex >= 0 && currentCriterionIndex < updatedCriteria.length) {
+            const criterion = updatedCriteria[currentCriterionIndex];
+            
+            // Check for description content (plain text after criterion header)
+            if (!line.startsWith('###') && !line.startsWith('**') && line.trim() && 
+                !line.includes('Category:') && !line.includes('Weight:') && 
+                !line.includes('Importance:')) {
+              
+              // Update description if it's meaningful content
+              if (line.length > 10 && !criterion.descriptionUpdated) {
+                updatedCriteria[currentCriterionIndex] = {
+                  ...criterion,
+                  description: line.trim(),
+                  descriptionUpdated: true
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // Transform criteria to match API specification using updated criteria
+      const transformedCriteria = updatedCriteria.map((criterion: any) => ({
+        criterion_id: criterion.id || criterion.criterion_id,
+        criterion_name: criterion.name || criterion.criterion_name,
+        category: criterion.category,
+        description: criterion.description,
+        importance: criterion.importance,
+        weight: criterion.weight,
+        scoring_method: criterion.scoring_method,
+        user_can_edit_weight: criterion.user_can_edit_weight,
+        user_can_edit_scoring: criterion.user_can_edit_scoring,
+        user_can_remove: criterion.user_can_remove,
+      }));
+
+      // Calculate total weight and normalize if necessary
+      const totalWeight = transformedCriteria.reduce((sum: number, criterion: any) => sum + (criterion.weight || 0), 0);
+      
+      // Normalize weights to ensure total doesn't exceed 100
+      if (totalWeight > 100) {
+        const scaleFactor = 100 / totalWeight;
+        transformedCriteria.forEach((criterion: any) => {
+          if (criterion.weight) {
+            criterion.weight = Math.round(criterion.weight * scaleFactor);
+          }
+        });
+      }
+
+      // Prepare the update data according to the API specification
+      const updateData = {
+        name: extractedName,
+        description: extractedDescription,
+        criteria: transformedCriteria,
+        passing_score: extractedPassingScore,
+        status: detailedScorecard.status
+      };
+
+      // Debug log to verify parsing (removed to avoid console.error issues in Next.js)
+
+      
+      await updateScorecardMutation.mutateAsync({
         scorecardId: state.scorecard.id,
-        content: content.substring(0, 100) + '...', // Log first 100 chars
-        hasDetailedScorecard: !!detailedScorecard,
-        criteria: detailedScorecard?.criteria?.length || 0
+        data: updateData,
       });
       
-      // Update the scorecard content via the new API
-      // Try different data structure - the backend might expect just the content fields
-      const result = await updateScorecardMutation.mutateAsync({
-        scorecardId: state.scorecard.id,
-        data: {
-          name: state.scorecard.name,
-          description: content,
-          is_active: state.scorecard.is_active
-        },
-      });
       setScorecardContent(content);
-      console.log('Save successful! Response:', result);
       setShowPreviewModal(false);
+      
+      // Show success message
+      alert('Scorecard updated successfully!');
     } catch (error) {
       console.error('Failed to save scorecard content:', error);
-      console.error('Full error object:', error);
-      console.error('Error details:', {
-        message: (error as any)?.message,
-        response: (error as any)?.response?.data,
-        status: (error as any)?.response?.status,
-        statusText: (error as any)?.response?.statusText,
-        config: (error as any)?.config
-      });
       
-      // Show user-friendly error message
-      alert(`Failed to save scorecard: ${(error as any)?.response?.data?.message || 'Unknown error'}`);
+      // Extract meaningful error information
+      const errorInfo = {
+        message: (error as any)?.message || 'Unknown error',
+        responseData: (error as any)?.response?.data || 'No response data',
+        status: (error as any)?.response?.status || 'No status',
+        statusText: (error as any)?.response?.statusText || 'No status text',
+        url: (error as any)?.config?.url || 'No URL',
+        method: (error as any)?.config?.method || 'No method',
+        requestData: (error as any)?.config?.data || 'No request data'
+      };
+      
+      console.error('Error details:', errorInfo);
+      
+      // Show user-friendly error message with more context
+      const apiErrorMessage = (error as any)?.response?.data?.message || 
+                             (error as any)?.response?.data?.detail || 
+                             (error as any)?.message;
+      
+      alert(`Failed to save scorecard: ${apiErrorMessage || 'Please check the console for more details'}`);
     }
   };
 

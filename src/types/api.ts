@@ -446,6 +446,7 @@ export interface ScorecardResponse {
   job_id: string;
   name: string;
   description?: string;
+  status?: string;
   criteria: EvaluationCriterion[];
   criteria_count?: number;
   storage_path?: string;
@@ -454,9 +455,69 @@ export interface ScorecardResponse {
   is_approved?: boolean;
   ai_generated?: boolean;
   ai_provider?: string;
+  ai_model?: string;
+  ai_confidence?: number;
   passing_score?: number;
+  job_description_id?: string;
+  organization_id?: string;
+  created_by_id?: string;
+  approved_by_id?: string;
   created_at: string;
   updated_at: string;
+  approved_at?: string;
+}
+
+export interface ScorecardSummaryResponse {
+  id: string;
+  name: string;
+  status: string;
+  is_approved: boolean;
+  criteria_count: number;
+  total_weight: number;
+  job_id: string;
+  job_title: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScorecardUpdateRequest {
+  name?: string;
+  description?: string;
+  criteria?: ScorecardCriterionUpdate[];
+  passing_score?: number;
+  status?: string;
+}
+
+export interface ScorecardCriterion {
+  criterion_id?: string;
+  criterion_name: string;
+  category?: string;
+  description?: string;
+  importance?: string;
+  weight: number;
+  scoring_method?: any;
+  user_can_edit_weight?: boolean;
+  user_can_edit_scoring?: boolean;
+  user_can_remove?: boolean;
+}
+
+export interface ScorecardCriterionUpdate {
+  criterion_id: string;
+  criterion_name?: string;
+  category?: string;
+  description?: string;
+  importance?: string;
+  weight?: number;
+  scoring_method?: any;
+  user_can_edit_weight?: boolean;
+  user_can_edit_scoring?: boolean;
+  user_can_remove?: boolean;
+}
+
+export interface ScorecardApprovalRequest {
+  action: string;
+  comments?: string;
+  changes_requested?: string[];
 }
 
 export interface EvaluationCriterion {

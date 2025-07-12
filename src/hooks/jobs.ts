@@ -16,6 +16,7 @@ import {
   JDEnhancementRequest,
   JDUploadResponse,
   JDEnhancementResponse,
+  ScorecardUpdateRequest,
 } from '@/types/api';
 
 // Query keys
@@ -262,7 +263,7 @@ export function useUpdateScorecard() {
       data 
     }: { 
       scorecardId: string;
-      data: any;
+      data: ScorecardUpdateRequest;
     }) => 
       jobsApi.updateScorecard(scorecardId, data),
     onSuccess: (_, { scorecardId }) => {
@@ -285,10 +286,10 @@ export function useApproveScorecard() {
     mutationFn: ({ 
       scorecardId, 
       action,
-      comment 
+      comment
     }: { 
       scorecardId: string;
-      action?: 'approve' | 'reject' | 'request_changes';
+      action: 'approve' | 'reject' | 'request_changes';
       comment?: string;
     }) => 
       jobsApi.approveScorecard(scorecardId, action, comment),

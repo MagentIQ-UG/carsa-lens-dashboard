@@ -25,7 +25,7 @@ import type {
 // Step Components (will be imported)
 import { BasicJobInfoStep } from './wizard-steps/basic-job-info-step';
 import { EnhancementStep } from './wizard-steps/enhancement-step';
-import { JobDescriptionStep } from './wizard-steps/job-description-step';
+import { EnhancedJobDescriptionStep } from './wizard-steps/enhanced-job-description-step';
 import { ReviewStep } from './wizard-steps/review-step';
 import { ScorecardStep } from './wizard-steps/scorecard-step';
 
@@ -242,7 +242,7 @@ export function JobCreationWizard({
       case 'basic':
         return <BasicJobInfoStep {...stepProps} />;
       case 'description':
-        return <JobDescriptionStep {...stepProps} />;
+        return <EnhancedJobDescriptionStep {...stepProps} />;
       case 'enhancement':
         return <EnhancementStep {...stepProps} />;
       case 'review':

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Select } from '@/components/ui/select';
+import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
 
 import { useUpdateJob } from '@/hooks/jobs';
 import { formatCurrency, formatJobType, formatJobMode, formatSeniorityLevel } from '@/lib/utils';
@@ -462,11 +463,17 @@ export function ReviewStep({
                 </div>
               </div>
             ) : (
-              <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                  {state.jobDescription.content}
-                </pre>
-              </div>
+              <WysiwygEditor
+                content={state.jobDescription.content}
+                onSave={(content) => {
+                  setEditedJDContent(content);
+                  handleJDContentChange(content);
+                }}
+                title="Job Description Preview"
+                readOnly={true}
+                height={300}
+                placeholder="Job description content..."
+              />
             )}
 
             {/* Enhancement Info */}

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
+import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
 
 import { useEnhanceJobDescription } from '@/hooks/jobs';
 import { cn } from '@/lib/utils';
@@ -424,14 +425,26 @@ export function EnhancementStep({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 rounded-lg p-4 max-h-64 overflow-y-auto">
-              <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                {showOriginal && state.uploadResult 
-                  ? state.uploadResult.job_description.content
-                  : state.jobDescription.content
+            <WysiwygEditor
+              content={showOriginal && state.uploadResult 
+                ? state.uploadResult.job_description.content
+                : state.jobDescription.content
+              }
+              onSave={(content) => {
+                if (state.jobDescription) {
+                  onStateChange({
+                    jobDescription: {
+                      ...state.jobDescription,
+                      content: content
+                    }
+                  });
                 }
-              </pre>
-            </div>
+              }}
+              title={`${showOriginal ? 'Original' : 'Enhanced'} Job Description`}
+              readOnly={false}
+              height={300}
+              placeholder="Job description content..."
+            />
           </CardContent>
         </Card>
       )}

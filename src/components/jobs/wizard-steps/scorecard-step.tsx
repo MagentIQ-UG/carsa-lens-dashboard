@@ -14,7 +14,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Modal } from '@/components/ui/modal';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
 import { useGenerateScorecard, useApproveScorecard, useUpdateScorecard, useScorecard } from '@/hooks/jobs';
 
 import type { WizardStepProps } from '../job-creation-wizard';
@@ -896,14 +896,16 @@ export function ScorecardStep({
                 </div>
               )}
 
-              {/* Markdown Editor */}
+              {/* WYSIWYG Editor */}
               {!isLoadingScorecard && (
-                <MarkdownEditor
+                <WysiwygEditor
                   content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
                   onSave={handleSaveContent}
                   onCancel={() => setShowPreviewModal(false)}
                   title={`${state.scorecard.name} - Content Editor`}
                   readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved || false}
+                  height={500}
+                  placeholder="Scorecard content..."
                 />
               )}
 

@@ -10,7 +10,7 @@ import {
   ScorecardGenerationResponse,
 } from '@/types/api';
 
-import { apiGet, apiPost, apiPut, apiDelete, uploadFile } from './client';
+import { apiGet, apiPost, apiPut, apiDelete, apiPatch, uploadFile } from './client';
 
 // Jobs API endpoints
 export const jobsApi = {
@@ -71,6 +71,32 @@ export const jobsApi = {
   ): Promise<ScorecardGenerationResponse> =>
     apiPost(`/jobs/${jobId}/descriptions/${jdId}/generate-scorecard`, 
       customInstructions ? { custom_instructions: customInstructions } : {}),
+
+  // Scorecard management
+  listJobScorecards: (
+    jobId: string,
+    includeArchived: boolean = false
+  ): Promise<any[]> =>
+    apiGet(`/jobs/${jobId}/scorecards`, { params: { include_archived: includeArchived } }),
+
+  getScorecard: (scorecardId: string): Promise<any> =>
+    apiGet(`/jobs/scorecards/${scorecardId}`),
+
+  updateScorecard: (
+    scorecardId: string,
+    data: any
+  ): Promise<{ message: string; scorecard: any }> =>
+    apiPut(`/jobs/scorecards/${scorecardId}`, data),
+
+  approveScorecard: (
+    scorecardId: string,
+    action: 'approve' | 'reject' | 'request_changes' = 'approve',
+    comment?: string
+  ): Promise<{ message: string; scorecard: any }> =>
+    apiPatch(`/jobs/scorecards/${scorecardId}/approval`, {
+      action,
+      comment: comment || undefined
+    }),
 
   // Health checks
   checkAIServices: (): Promise<{

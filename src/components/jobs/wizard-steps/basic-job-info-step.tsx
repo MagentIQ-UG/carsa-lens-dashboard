@@ -143,7 +143,8 @@ export function BasicJobInfoStep({
       previousFormDataRef.current = formData;
       onStateChange({ basicJobInfo: formData });
     }
-  }, [formData]); // Remove onStateChange from dependencies to prevent infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData]); // onStateChange intentionally omitted to prevent infinite loop
 
   return (
     <div className="space-y-8">

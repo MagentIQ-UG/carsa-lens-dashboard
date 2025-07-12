@@ -233,6 +233,10 @@ export interface ScorecardGenerationResponse {
     storage_path: string;
     total_weight: number;
     is_active: boolean;
+    is_approved?: boolean;
+    ai_generated?: boolean;
+    ai_provider?: string;
+    passing_score?: number;
     created_at: string;
   };
   criteria_summary: Array<{
@@ -443,8 +447,14 @@ export interface ScorecardResponse {
   name: string;
   description?: string;
   criteria: EvaluationCriterion[];
+  criteria_count?: number;
+  storage_path?: string;
   total_weight: number;
   is_active: boolean;
+  is_approved?: boolean;
+  ai_generated?: boolean;
+  ai_provider?: string;
+  passing_score?: number;
   created_at: string;
   updated_at: string;
 }

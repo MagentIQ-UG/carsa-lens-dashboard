@@ -232,6 +232,79 @@ export function useGenerateScorecard() {
   });
 }
 
+// List job scorecards hook
+export function useJobScorecards(jobId: string, includeArchived: boolean = false, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['scorecards', jobId, includeArchived],
+    queryFn: () => jobsApi.listJobScorecards(jobId, includeArchived),
+    enabled: enabled && !!jobId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+// Single scorecard hook
+export function useScorecard(scorecardId: string, enabled: boolean = true) {
+  return useQuery({
+    queryKey: ['scorecard', scorecardId],
+    queryFn: () => jobsApi.getScorecard(scorecardId),
+    enabled: enabled && !!scorecardId,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+  });
+}
+
+// Update scorecard mutation
+export function useUpdateScorecard() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      scorecardId, 
+      data 
+    }: { 
+      scorecardId: string;
+      data: any;
+    }) => 
+      jobsApi.updateScorecard(scorecardId, data),
+    onSuccess: (_, { scorecardId }) => {
+      queryClient.invalidateQueries({ queryKey: ['scorecard', scorecardId] });
+      queryClient.invalidateQueries({ queryKey: ['scorecards'] });
+      toast.success('Scorecard updated successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to update scorecard';
+      toast.error(message);
+    },
+  });
+}
+
+// Approve scorecard mutation
+export function useApproveScorecard() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      scorecardId, 
+      action,
+      comment 
+    }: { 
+      scorecardId: string;
+      action?: 'approve' | 'reject' | 'request_changes';
+      comment?: string;
+    }) => 
+      jobsApi.approveScorecard(scorecardId, action, comment),
+    onSuccess: (_, { scorecardId }) => {
+      queryClient.invalidateQueries({ queryKey: ['scorecard', scorecardId] });
+      queryClient.invalidateQueries({ queryKey: ['scorecards'] });
+      queryClient.invalidateQueries({ queryKey: jobKeys.all });
+      toast.success('Scorecard approval updated successfully!');
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to update scorecard approval';
+      toast.error(message);
+    },
+  });
+}
+
 // AI services health check
 export function useAIServicesHealth() {
   return useQuery({

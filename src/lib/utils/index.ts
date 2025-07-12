@@ -143,3 +143,30 @@ export function formatJobMode(jobMode: string): string {
 export function formatSeniorityLevel(level: string): string {
   return capitalize(level);
 }
+
+/**
+ * Format salary range for display
+ */
+export function formatSalaryRange(
+  min?: number | null, 
+  max?: number | null, 
+  currency: string = 'USD'
+): string {
+  if (!min && !max) {
+    return 'Salary not specified';
+  }
+  
+  if (min && max) {
+    return `${formatCurrency(min, currency)} - ${formatCurrency(max, currency)}`;
+  }
+  
+  if (min) {
+    return `From ${formatCurrency(min, currency)}`;
+  }
+  
+  if (max) {
+    return `Up to ${formatCurrency(max, currency)}`;
+  }
+  
+  return 'Salary not specified';
+}

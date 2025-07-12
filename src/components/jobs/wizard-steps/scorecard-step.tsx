@@ -5,14 +5,17 @@
 
 'use client';
 
-import { Target, Wand2, CheckCircle, Eye, Download, RefreshCw } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
+import { Target, Wand2, CheckCircle, Eye, Download, RefreshCw, X, ChevronDown, ThumbsUp } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Modal } from '@/components/ui/modal';
 import { Progress } from '@/components/ui/progress';
-import { useGenerateScorecard } from '@/hooks/jobs';
+import { Badge } from '@/components/ui/badge';
+import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { useGenerateScorecard, useApproveScorecard, useUpdateScorecard, useScorecard } from '@/hooks/jobs';
 
 import type { WizardStepProps } from '../job-creation-wizard';
 
@@ -24,16 +27,29 @@ export function ScorecardStep({
   canBack
 }: WizardStepProps) {
   const generateScorecardMutation = useGenerateScorecard();
+  const approveScorecardMutation = useApproveScorecard();
+  const updateScorecardMutation = useUpdateScorecard();
 
   const [customInstructions, setCustomInstructions] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
+  const [scorecardContent, setScorecardContent] = useState('');
+  const hasAttemptedGeneration = useRef(false);
+
+  // Fetch detailed scorecard data when available
+  const { data: detailedScorecard, isLoading: isLoadingScorecard } = useScorecard(
+    state.scorecard?.id || '',
+    !!state.scorecard?.id
+  );
 
   // Generate scorecard
   const handleGenerate = useCallback(async () => {
-    if (!state.job || !state.jobDescription) return;
+    if (!state.job || !state.jobDescription || hasAttemptedGeneration.current) return;
 
     try {
+      hasAttemptedGeneration.current = true;
       setIsGenerating(true);
       setGenerationProgress(10);
 
@@ -45,20 +61,42 @@ export function ScorecardStep({
 
       setGenerationProgress(100);
       onStateChange({ scorecard: result.scorecard });
+      
+      // Generate markdown content for the scorecard
+      const markdownContent = generateScorecardMarkdown(result);
+      setScorecardContent(markdownContent);
     } catch (error) {
       console.error('Scorecard generation failed:', error);
+      hasAttemptedGeneration.current = false; // Reset on error to allow retry
     } finally {
       setIsGenerating(false);
       setGenerationProgress(0);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.job, state.jobDescription, customInstructions, generateScorecardMutation, onStateChange]);
 
-  // Auto-start generation if we have a job description
+  // Auto-start generation if we have a job description (only once)
   useEffect(() => {
-    if (state.jobDescription && !state.scorecard && !isGenerating) {
-      handleGenerate();
+    if (state.jobDescription && !state.scorecard && !isGenerating && !hasAttemptedGeneration.current) {
+      // Add a small delay to prevent race conditions
+      const timer = setTimeout(() => {
+        handleGenerate();
+      }, 100);
+      return () => clearTimeout(timer);
     }
   }, [state.jobDescription, state.scorecard, isGenerating, handleGenerate]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowDownloadMenu(false);
+    };
+
+    if (showDownloadMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showDownloadMenu]);
 
   // Simulate progress for better UX
   useEffect(() => {
@@ -69,6 +107,275 @@ export function ScorecardStep({
       return () => clearInterval(interval);
     }
   }, [isGenerating, generationProgress]);
+
+  // Generate scorecard markdown content
+  const generateScorecardMarkdown = (result?: any) => {
+    if (!state.job || !state.scorecard) return '';
+
+    // Use detailed scorecard data if available, otherwise fall back to result
+    const scorecard = detailedScorecard || state.scorecard;
+    const criteria = detailedScorecard?.criteria || result?.criteria_summary || [];
+
+    let markdown = `# ${scorecard.name}\n\n`;
+    
+    // Approval status
+    if (scorecard.is_approved !== undefined) {
+      markdown += `> **Status:** ${scorecard.is_approved ? '✅ Approved' : '⏳ Pending Approval'}\n\n`;
+    }
+    
+    markdown += `## Job Information\n\n`;
+    markdown += `**Position:** ${state.job.title}\n`;
+    markdown += `**Department:** ${state.job.department}\n`;
+    markdown += `**Location:** ${state.job.location}\n\n`;
+    
+    markdown += `## Scorecard Overview\n\n`;
+    markdown += `- **Total Criteria:** ${scorecard.criteria_count || criteria.length}\n`;
+    markdown += `- **Total Weight:** ${scorecard.total_weight}\n`;
+    markdown += `- **Status:** ${scorecard.is_active ? 'Active' : 'Draft'}\n`;
+    markdown += `- **AI Generated:** ${scorecard.ai_generated ? 'Yes' : 'No'}\n`;
+    if (scorecard.ai_provider) {
+      markdown += `- **AI Provider:** ${scorecard.ai_provider}\n`;
+    }
+    if (scorecard.passing_score) {
+      markdown += `- **Passing Score:** ${scorecard.passing_score}\n`;
+    }
+    markdown += `- **Created:** ${new Date(scorecard.created_at).toLocaleDateString()}\n\n`;
+
+    if (scorecard.description) {
+      markdown += `## Description\n\n${scorecard.description}\n\n`;
+    }
+
+    if (criteria && criteria.length > 0) {
+      markdown += `## Evaluation Criteria\n\n`;
+      criteria.forEach((criterion: any, index: number) => {
+        markdown += `### ${index + 1}. ${criterion.name || criterion.criterion}\n\n`;
+        
+        if (criterion.description) {
+          markdown += `${criterion.description}\n\n`;
+        }
+        
+        markdown += `**Details:**\n`;
+        if (criterion.category) markdown += `- **Category:** ${criterion.category}\n`;
+        if (criterion.importance) markdown += `- **Importance:** ${criterion.importance}\n`;
+        if (criterion.weight !== undefined) markdown += `- **Weight:** ${criterion.weight}\n`;
+        if (criterion.max_score !== undefined) markdown += `- **Max Score:** ${criterion.max_score}\n`;
+        if (criterion.min_score !== undefined) markdown += `- **Min Score:** ${criterion.min_score}\n`;
+        
+        if (criterion.skills && criterion.skills.length > 0) {
+          markdown += `- **Required Skills:** ${criterion.skills.join(', ')}\n`;
+        }
+        
+        markdown += `\n`;
+        
+        if (criterion.evaluation_guide) {
+          markdown += `**Evaluation Guide:**\n${criterion.evaluation_guide}\n\n`;
+        }
+      });
+    }
+
+    markdown += `## Instructions for Use\n\n`;
+    markdown += `1. **Review each criterion** carefully to understand what is being evaluated\n`;
+    markdown += `2. **Score candidates** according to the defined scale for each criterion\n`;
+    markdown += `3. **Provide evidence** for each score to support your evaluation\n`;
+    markdown += `4. **Consider the weight** of each criterion in the final decision\n`;
+    markdown += `5. **Use the evaluation guide** to ensure consistent scoring\n\n`;
+    
+    if (scorecard.passing_score) {
+      markdown += `**Note:** Candidates must achieve a minimum score of ${scorecard.passing_score} to be considered for this position.\n\n`;
+    }
+    
+    markdown += `---\n`;
+    markdown += `*Generated by CARSA Lens Dashboard*\n`;
+    markdown += `*Last updated: ${new Date().toLocaleDateString()}*\n`;
+
+    return markdown;
+  };
+
+  // Handle scorecard preview
+  const handlePreview = () => {
+    // Generate current markdown content if not already generated
+    if (!scorecardContent && state.scorecard && generateScorecardMutation.data) {
+      const markdownContent = generateScorecardMarkdown(generateScorecardMutation.data);
+      setScorecardContent(markdownContent);
+    }
+    setShowPreviewModal(true);
+  };
+
+  // Handle scorecard approval
+  const handleApprove = async () => {
+    if (!state.scorecard) return;
+
+    try {
+      console.log('Approving scorecard:', {
+        scorecardId: state.scorecard.id,
+        action: 'approve',
+        comment: 'Approved via dashboard'
+      });
+      
+      const result = await approveScorecardMutation.mutateAsync({
+        scorecardId: state.scorecard.id,
+        action: 'approve',
+        comment: 'Approved via dashboard'
+      });
+      
+      console.log('Scorecard approved successfully:', result);
+      alert('Scorecard approved successfully!');
+    } catch (error) {
+      console.error('Failed to approve scorecard:', error);
+      console.error('Full approval error object:', error);
+      console.error('Approval error details:', {
+        message: (error as any)?.message,
+        response: (error as any)?.response?.data,
+        status: (error as any)?.response?.status,
+        statusText: (error as any)?.response?.statusText,
+        config: (error as any)?.config
+      });
+      
+      // Show user-friendly error message
+      alert(`Failed to approve scorecard: ${(error as any)?.response?.data?.message || 'Unknown error'}`);
+    }
+  };
+
+  // Handle scorecard content save
+  const handleSaveContent = async (content: string) => {
+    if (!state.scorecard) return;
+
+    try {
+      console.log('Saving scorecard content:', {
+        scorecardId: state.scorecard.id,
+        content: content.substring(0, 100) + '...', // Log first 100 chars
+        hasDetailedScorecard: !!detailedScorecard,
+        criteria: detailedScorecard?.criteria?.length || 0
+      });
+      
+      // Update the scorecard content via the new API
+      // Try different data structure - the backend might expect just the content fields
+      const result = await updateScorecardMutation.mutateAsync({
+        scorecardId: state.scorecard.id,
+        data: {
+          name: state.scorecard.name,
+          description: content,
+          is_active: state.scorecard.is_active
+        },
+      });
+      setScorecardContent(content);
+      console.log('Save successful! Response:', result);
+      setShowPreviewModal(false);
+    } catch (error) {
+      console.error('Failed to save scorecard content:', error);
+      console.error('Full error object:', error);
+      console.error('Error details:', {
+        message: (error as any)?.message,
+        response: (error as any)?.response?.data,
+        status: (error as any)?.response?.status,
+        statusText: (error as any)?.response?.statusText,
+        config: (error as any)?.config
+      });
+      
+      // Show user-friendly error message
+      alert(`Failed to save scorecard: ${(error as any)?.response?.data?.message || 'Unknown error'}`);
+    }
+  };
+
+  // Handle scorecard download
+  const handleDownload = (format: 'txt' | 'json' = 'txt') => {
+    if (!state.scorecard) return;
+
+    try {
+      let content: string;
+      let mimeType: string;
+      let fileExtension: string;
+      
+      if (format === 'json') {
+        // Generate JSON format
+        content = generateScorecardJSON();
+        mimeType = 'application/json;charset=utf-8';
+        fileExtension = 'json';
+      } else {
+        // Generate text format
+        content = generateScorecardContent();
+        mimeType = 'text/plain;charset=utf-8';
+        fileExtension = 'txt';
+      }
+      
+      // Create blob and download
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      
+      // Create download link
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `scorecard-${state.scorecard.name.replace(/\s+/g, '-').toLowerCase()}.${fileExtension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Failed to download scorecard:', error);
+    }
+  };
+
+  // Generate scorecard JSON for download
+  const generateScorecardJSON = () => {
+    if (!state.scorecard || !state.job) return '';
+
+    const data = {
+      scorecard: {
+        id: state.scorecard.id,
+        name: state.scorecard.name,
+        job_id: state.job.id,
+        job_title: state.job.title,
+        job_department: state.job.department,
+        criteria_count: state.scorecard.criteria_count,
+        total_weight: state.scorecard.total_weight,
+        is_active: state.scorecard.is_active,
+        storage_path: state.scorecard.storage_path,
+        created_at: state.scorecard.created_at,
+      },
+      criteria: generateScorecardMutation.data?.criteria_summary || [],
+      generated_by: 'CARSA Lens Dashboard',
+      exported_at: new Date().toISOString(),
+    };
+
+    return JSON.stringify(data, null, 2);
+  };
+
+  // Generate scorecard content for download
+  const generateScorecardContent = () => {
+    if (!state.scorecard || !state.job) return '';
+
+    let content = `EVALUATION SCORECARD\n`;
+    content += `===================\n\n`;
+    content += `Job: ${state.job.title}\n`;
+    content += `Department: ${state.job.department}\n`;
+    content += `Scorecard: ${state.scorecard.name}\n`;
+    content += `Generated: ${new Date(state.scorecard.created_at).toLocaleString()}\n\n`;
+    
+    content += `SCORECARD DETAILS\n`;
+    content += `-----------------\n`;
+    content += `Total Criteria: ${state.scorecard.criteria_count}\n`;
+    content += `Total Weight: ${state.scorecard.total_weight}\n`;
+    content += `Status: ${state.scorecard.is_active ? 'Active' : 'Draft'}\n`;
+    content += `Storage Path: ${state.scorecard.storage_path}\n\n`;
+    
+    if (generateScorecardMutation.data?.criteria_summary) {
+      content += `EVALUATION CRITERIA\n`;
+      content += `-------------------\n`;
+      generateScorecardMutation.data.criteria_summary.forEach((criterion, index) => {
+        content += `${index + 1}. ${criterion.name}\n`;
+        content += `   Category: ${criterion.category}\n`;
+        content += `   Importance: ${criterion.importance}\n`;
+        content += `   Weight: ${criterion.weight}\n\n`;
+      });
+    }
+    
+    content += `\nGenerated by CARSA Lens Dashboard\n`;
+    content += `${new Date().toISOString()}\n`;
+
+    return content;
+  };
 
 
   return (
@@ -159,7 +466,10 @@ export function ScorecardStep({
 
             {/* Generate Button */}
             <Button
-              onClick={handleGenerate}
+              onClick={() => {
+                hasAttemptedGeneration.current = false; // Reset for manual generation
+                handleGenerate();
+              }}
               disabled={!state.jobDescription || generateScorecardMutation.isPending}
               className="w-full"
               size="lg"
@@ -197,15 +507,59 @@ export function ScorecardStep({
                   Evaluation Scorecard Generated
                 </div>
                 <div className="flex space-x-2">
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={handlePreview}>
                     <Eye className="h-4 w-4 mr-1" />
                     Preview
                   </Button>
-                  <Button size="sm" variant="outline">
-                    <Download className="h-4 w-4 mr-1" />
-                    Download
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={handleGenerate}>
+                  <div className="relative">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDownloadMenu(!showDownloadMenu);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                    {showDownloadMenu && (
+                      <div 
+                        className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              handleDownload('txt');
+                              setShowDownloadMenu(false);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Text Format (.txt)
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDownload('json');
+                              setShowDownloadMenu(false);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            JSON Format (.json)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      hasAttemptedGeneration.current = false; // Reset for regeneration
+                      handleGenerate();
+                    }}
+                  >
                     <RefreshCw className="h-4 w-4 mr-1" />
                     Regenerate
                   </Button>
@@ -342,7 +696,10 @@ export function ScorecardStep({
             </Button>
           ) : !isGenerating && state.jobDescription ? (
             <Button
-              onClick={handleGenerate}
+              onClick={() => {
+                hasAttemptedGeneration.current = false; // Reset for manual generation
+                handleGenerate();
+              }}
               disabled={generateScorecardMutation.isPending}
               className="min-w-[160px]"
             >
@@ -358,6 +715,146 @@ export function ScorecardStep({
           ) : null}
         </div>
       </div>
+
+      {/* Preview Modal with Markdown Editor */}
+      <Modal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        size="4xl"
+        showCloseButton={true}
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Scorecard Preview & Editor</h2>
+              <p className="text-gray-600">Review and edit your scorecard content before approval</p>
+            </div>
+            {state.scorecard && (
+              <div className="flex items-center space-x-2">
+                <Badge variant={(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'success' : 'default'}>
+                  {(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'Approved' : 'Draft'}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowPreviewModal(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {state.scorecard && (
+            <div className="space-y-6">
+              {/* Loading State */}
+              {isLoadingScorecard && (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                  <span className="ml-3 text-gray-600">Loading detailed scorecard...</span>
+                </div>
+              )}
+
+              {/* Markdown Editor */}
+              {!isLoadingScorecard && (
+                <MarkdownEditor
+                  content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                  onSave={handleSaveContent}
+                  onCancel={() => setShowPreviewModal(false)}
+                  title={`${state.scorecard.name} - Content Editor`}
+                  readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved || false}
+                />
+              )}
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-between pt-4 border-t bg-gray-50 -mx-6 -mb-6 px-6 py-4">
+                <div className="flex items-center space-x-4">
+                  <div className="text-sm text-gray-600">
+                    <div className="font-medium">Scorecard Status</div>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <span>Criteria: {state.scorecard.criteria_count}</span>
+                      <span>•</span>
+                      <span>Weight: {state.scorecard.total_weight}</span>
+                      <span>•</span>
+                      <span>{(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'Approved' : 'Pending Approval'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex space-x-2">
+                  {/* Download Options */}
+                  <div className="relative">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDownloadMenu(!showDownloadMenu);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                    {showDownloadMenu && (
+                      <div 
+                        className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="py-1">
+                          <button
+                            onClick={() => {
+                              handleDownload('txt');
+                              setShowDownloadMenu(false);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            Text Format (.txt)
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDownload('json');
+                              setShowDownloadMenu(false);
+                            }}
+                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                          >
+                            JSON Format (.json)
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Approval Button */}
+                  {!(detailedScorecard?.is_approved || state.scorecard.is_approved) && (
+                    <Button
+                      onClick={handleApprove}
+                      disabled={approveScorecardMutation.isPending || isLoadingScorecard}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {approveScorecardMutation.isPending ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        <>
+                          <ThumbsUp className="h-4 w-4 mr-2" />
+                          Approve Scorecard
+                        </>
+                      )}
+                    </Button>
+                  )}
+
+                  {(detailedScorecard?.is_approved || state.scorecard.is_approved) && (
+                    <Button onClick={() => setShowPreviewModal(false)}>
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Done
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

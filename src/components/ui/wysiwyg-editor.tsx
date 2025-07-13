@@ -185,13 +185,12 @@ export function WysiwygEditor({
   className,
   readOnly = false,
   placeholder: _placeholder = "Start writing...",
-  height = 400,
+  height: _height = 400,
   onEnhance,
   enhanceLoading = false,
   isGeneratedContent = false
 }: WysiwygEditorProps) {
   const [hasChanges, setHasChanges] = useState(false);
-  const [isPreview, setIsPreview] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -212,7 +211,7 @@ export function WysiwygEditor({
       CharacterCount,
     ],
     content: markdownToHtml(content),
-    editable: !readOnly && !isPreview,
+    editable: !readOnly,
     immediatelyRender: false,
     onUpdate: ({ editor: _editor }) => {
       setHasChanges(true);
@@ -250,12 +249,7 @@ export function WysiwygEditor({
     onCancel?.();
   };
 
-  const togglePreview = () => {
-    setIsPreview(!isPreview);
-    if (editor) {
-      editor.setEditable(!isPreview && !readOnly);
-    }
-  };
+  // Note: Preview toggle removed for simplified enterprise UX
 
   if (!isMounted || !editor) {
     return (
@@ -269,60 +263,70 @@ export function WysiwygEditor({
   }
 
   return (
-    <Card className={cn('w-full', className)}>
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Eye className="h-5 w-5 text-blue-600" />
-            <span>{title}</span>
-            {isGeneratedContent && (
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                AI Generated
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            {/* AI Enhancement Button */}
-            {onEnhance && !readOnly && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onEnhance}
-                disabled={enhanceLoading}
-                className="text-purple-600 border-purple-200 hover:bg-purple-50"
-              >
-                <Wand2 className={cn(
-                  "h-4 w-4 mr-1",
-                  enhanceLoading && "animate-spin"
-                )} />
-                {enhanceLoading ? 'Enhancing...' : 'Enhance with AI'}
-              </Button>
-            )}
+    <div className={cn('w-full h-full flex flex-col', className)}>
+      {/* Fixed Header */}
+      <Card className="flex-shrink-0">
+        <CardHeader className="pb-3 border-b border-gray-100">
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Eye className="h-4 w-4 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                  <p className="text-sm text-gray-500">Professional document editor</p>
+                </div>
+              </div>
+              {isGeneratedContent && (
+                <div className="flex items-center space-x-1 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 px-3 py-1 rounded-full">
+                  <Wand2 className="h-3 w-3 text-green-600" />
+                  <span className="text-xs font-medium text-green-700">AI Generated</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              {/* AI Enhancement Button */}
+              {onEnhance && !readOnly && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEnhance}
+                  disabled={enhanceLoading}
+                  className="bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border-purple-200 hover:from-purple-100 hover:to-indigo-100 font-medium"
+                >
+                  <Wand2 className={cn(
+                    "h-4 w-4 mr-2",
+                    enhanceLoading && "animate-spin"
+                  )} />
+                  {enhanceLoading ? 'Enhancing...' : 'Enhance with AI'}
+                </Button>
+              )}
+            </div>
+          </CardTitle>
+        </CardHeader>
+      </Card>
 
-            {/* Preview Toggle */}
-            {!readOnly && (
-              <Button
-                variant={isPreview ? "primary" : "outline"}
-                size="sm"
-                onClick={togglePreview}
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                {isPreview ? 'Edit' : 'Preview'}
-              </Button>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* User-friendly information */}
-        {!readOnly && !isPreview && (
-          <div className="flex items-center space-x-2 text-sm bg-green-50 border border-green-200 rounded-lg p-3">
-            <CheckCircle className="h-4 w-4 text-green-600" />
-            <span className="text-green-700">
-              Edit content directly - bold, italic, headers, and tables work just like Microsoft Word!
-            </span>
+      {/* Scrollable Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 mt-4">
+        <Card className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col p-4 space-y-4">
+        {/* Modern Status Bar */}
+        {!readOnly && (
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-blue-900">Ready to edit</span>
+              </div>
+              <div className="h-4 w-px bg-blue-300"></div>
+              <span className="text-sm text-blue-700">Format text using the toolbar or keyboard shortcuts</span>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-blue-600">
+              <span className="font-medium">Microsoft Word-style editing</span>
+              <CheckCircle className="h-4 w-4" />
+            </div>
           </div>
         )}
 
@@ -334,236 +338,309 @@ export function WysiwygEditor({
           </div>
         )}
 
-        {/* Toolbar */}
-        {!readOnly && !isPreview && (
-          <div className="flex flex-wrap items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            {/* Text formatting */}
-            <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleBold().run()}
-                className={cn(
-                  'p-2',
-                  editor.isActive('bold') && 'bg-blue-100 text-blue-600'
-                )}
-                title="Bold"
-              >
-                <Bold className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleItalic().run()}
-                className={cn(
-                  'p-2',
-                  editor.isActive('italic') && 'bg-blue-100 text-blue-600'
-                )}
-                title="Italic"
-              >
-                <Italic className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Headers */}
-            <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-                className={cn(
-                  'p-2 text-sm font-bold',
-                  editor.isActive('heading', { level: 1 }) && 'bg-blue-100 text-blue-600'
-                )}
-                title="Heading 1"
-              >
-                H1
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-                className={cn(
-                  'p-2 text-sm font-bold',
-                  editor.isActive('heading', { level: 2 }) && 'bg-blue-100 text-blue-600'
-                )}
-                title="Heading 2"
-              >
-                H2
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-                className={cn(
-                  'p-2 text-sm font-bold',
-                  editor.isActive('heading', { level: 3 }) && 'bg-blue-100 text-blue-600'
-                )}
-                title="Heading 3"
-              >
-                H3
-              </Button>
-            </div>
-
-            {/* Lists */}
-            <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleBulletList().run()}
-                className={cn(
-                  'p-2',
-                  editor.isActive('bulletList') && 'bg-blue-100 text-blue-600'
-                )}
-                title="Bullet List"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleOrderedList().run()}
-                className={cn(
-                  'p-2',
-                  editor.isActive('orderedList') && 'bg-blue-100 text-blue-600'
-                )}
-                title="Numbered List"
-              >
-                <ListOrdered className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Quote */}
-            <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().toggleBlockquote().run()}
-                className={cn(
-                  'p-2',
-                  editor.isActive('blockquote') && 'bg-blue-100 text-blue-600'
-                )}
-                title="Quote"
-              >
-                <Quote className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Table */}
-            <div className="flex items-center gap-1 border-r border-gray-300 pr-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
-                title="Insert Table"
-              >
-                <TableIcon className="h-4 w-4" />
-              </Button>
-            </div>
-
-            {/* Undo/Redo */}
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().undo().run()}
-                title="Undo"
-              >
-                <Undo className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => editor.chain().focus().redo().run()}
-                title="Redo"
-              >
-                <Redo className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Editor */}
-        <div 
-          className={cn(
-            "border border-gray-200 rounded-lg overflow-hidden bg-white",
-            !readOnly && !isPreview && "min-h-[400px]"
-          )}
-          style={{ minHeight: height }}
-        >
-          <EditorContent 
-            editor={editor} 
-            className={cn(
-              "p-6 focus:outline-none prose prose-lg max-w-none",
-              !readOnly && !isPreview && "min-h-[350px]",
-              // MS Word-like styling
-              "[&_.ProseMirror]:outline-none",
-              "[&_.ProseMirror]:min-h-full",
-              "[&_.ProseMirror]:font-serif",
-              "[&_.ProseMirror]:text-gray-900",
-              "[&_.ProseMirror]:leading-relaxed",
-              "[&_.ProseMirror_h1]:text-2xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:mb-4",
-              "[&_.ProseMirror_h2]:text-xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:mb-3",
-              "[&_.ProseMirror_h3]:text-lg [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:mb-2",
-              "[&_.ProseMirror_p]:mb-3",
-              "[&_.ProseMirror_ul]:mb-3 [&_.ProseMirror_ol]:mb-3",
-              "[&_.ProseMirror_li]:mb-1",
-              "[&_.ProseMirror_table]:border-collapse [&_.ProseMirror_table]:border [&_.ProseMirror_table]:border-gray-300",
-              "[&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-gray-300 [&_.ProseMirror_th]:bg-gray-50 [&_.ProseMirror_th]:p-2",
-              "[&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-gray-300 [&_.ProseMirror_td]:p-2",
-              "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-blue-500 [&_.ProseMirror_blockquote]:pl-4 [&_.ProseMirror_blockquote]:bg-blue-50 [&_.ProseMirror_blockquote]:py-2"
-            )}
-          />
-        </div>
-
-        {/* Word count and character count */}
-        {editor && (
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <div className="flex items-center space-x-4">
-              <span>{editor.storage.characterCount?.characters() || 0} characters</span>
-              <span>•</span>
-              <span>{editor.storage.characterCount?.words() || 0} words</span>
-            </div>
-            {hasChanges ? (
-              <span className="flex items-center text-amber-600">
-                <AlertCircle className="h-4 w-4 mr-1" />
-                Unsaved changes
-              </span>
-            ) : (
-              <span className="flex items-center text-green-600">
-                <CheckCircle className="h-4 w-4 mr-1" />
-                All changes saved
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Actions */}
+        {/* Modern Toolbar */}
         {!readOnly && (
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="text-sm text-gray-500">
-              Content is saved in a format compatible with all systems
+          <div className="border border-gray-200 rounded-lg bg-white shadow-sm">
+            {/* Toolbar Header */}
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 bg-gray-50">
+              <span className="text-sm font-medium text-gray-700">Formatting</span>
+              <span className="text-xs text-gray-500">Use shortcuts: Ctrl+B, Ctrl+I, etc.</span>
             </div>
             
-            <div className="flex space-x-3">
-              {onCancel && (
-                <Button variant="outline" onClick={handleCancel}>
-                  Cancel
+            {/* Toolbar Content */}
+            <div className="flex flex-wrap items-center gap-1 p-3">
+              {/* Text formatting */}
+              <div className="flex items-center gap-1 border-r border-gray-200 pr-3 mr-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleBold().run()}
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('bold') 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Bold (Ctrl+B)"
+                >
+                  <Bold className="h-4 w-4" />
                 </Button>
-              )}
-              <Button 
-                onClick={handleSave}
-                disabled={!hasChanges}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Save Changes
-              </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleItalic().run()}
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('italic') 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Italic (Ctrl+I)"
+                >
+                  <Italic className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Headers */}
+              <div className="flex items-center gap-1 border-r border-gray-200 pr-3 mr-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  className={cn(
+                    'h-8 px-2 text-sm font-bold hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('heading', { level: 1 }) 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Heading 1"
+                >
+                  H1
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  className={cn(
+                    'h-8 px-2 text-sm font-bold hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('heading', { level: 2 }) 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Heading 2"
+                >
+                  H2
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  className={cn(
+                    'h-8 px-2 text-sm font-bold hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('heading', { level: 3 }) 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Heading 3"
+                >
+                  H3
+                </Button>
+              </div>
+
+              {/* Lists */}
+              <div className="flex items-center gap-1 border-r border-gray-200 pr-3 mr-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleBulletList().run()}
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('bulletList') 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Bullet List"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('orderedList') 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Numbered List"
+                >
+                  <ListOrdered className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Quote & Table */}
+              <div className="flex items-center gap-1 border-r border-gray-200 pr-3 mr-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                  className={cn(
+                    'h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border transition-all',
+                    editor.isActive('blockquote') 
+                      ? 'bg-blue-100 text-blue-600 border-blue-300 shadow-sm' 
+                      : 'border-transparent'
+                  )}
+                  title="Quote"
+                >
+                  <Quote className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+                  className="h-8 w-8 p-0 hover:bg-blue-50 hover:border-blue-200 border border-transparent transition-all"
+                  title="Insert Table"
+                >
+                  <TableIcon className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {/* Undo/Redo */}
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().undo().run()}
+                  className="h-8 w-8 p-0 hover:bg-gray-50 hover:border-gray-200 border border-transparent transition-all"
+                  title="Undo (Ctrl+Z)"
+                >
+                  <Undo className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => editor.chain().focus().redo().run()}
+                  className="h-8 w-8 p-0 hover:bg-gray-50 hover:border-gray-200 border border-transparent transition-all"
+                  title="Redo (Ctrl+Y)"
+                >
+                  <Redo className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+
+            {/* Scrollable Editor Container */}
+            <div className="flex-1 flex flex-col border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+              {/* Editor Header */}
+              <div className="flex-shrink-0 flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-100">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Document</span>
+                  </div>
+                  {editor && (
+                    <div className="text-xs text-gray-500">
+                      {editor.storage.characterCount?.words() || 0} words • {editor.storage.characterCount?.characters() || 0} characters
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  {hasChanges && (
+                    <div className="flex items-center space-x-1 text-xs text-amber-600">
+                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                      <span>Unsaved</span>
+                    </div>
+                  )}
+                  {!hasChanges && (
+                    <div className="flex items-center space-x-1 text-xs text-green-600">
+                      <CheckCircle className="w-3 h-3" />
+                      <span>Saved</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Scrollable Editor Content */}
+              <div className="flex-1 overflow-y-auto bg-white">
+                <EditorContent 
+                  editor={editor} 
+                  className={cn(
+                    "h-full p-8 focus:outline-none prose prose-lg max-w-none",
+                    // Microsoft Word-inspired styling
+                    "[&_.ProseMirror]:outline-none",
+                    "[&_.ProseMirror]:min-h-full",
+                    "[&_.ProseMirror]:font-serif",
+                    "[&_.ProseMirror]:text-gray-900",
+                    "[&_.ProseMirror]:leading-relaxed",
+                    "[&_.ProseMirror]:text-base",
+                    // Typography hierarchy
+                    "[&_.ProseMirror_h1]:text-3xl [&_.ProseMirror_h1]:font-bold [&_.ProseMirror_h1]:text-gray-900 [&_.ProseMirror_h1]:mb-6 [&_.ProseMirror_h1]:mt-8 [&_.ProseMirror_h1]:first:mt-0",
+                    "[&_.ProseMirror_h2]:text-2xl [&_.ProseMirror_h2]:font-semibold [&_.ProseMirror_h2]:text-gray-900 [&_.ProseMirror_h2]:mb-4 [&_.ProseMirror_h2]:mt-6",
+                    "[&_.ProseMirror_h3]:text-xl [&_.ProseMirror_h3]:font-semibold [&_.ProseMirror_h3]:text-gray-900 [&_.ProseMirror_h3]:mb-3 [&_.ProseMirror_h3]:mt-5",
+                    "[&_.ProseMirror_p]:mb-4 [&_.ProseMirror_p]:leading-relaxed [&_.ProseMirror_p]:text-gray-800",
+                    // Lists
+                    "[&_.ProseMirror_ul]:mb-4 [&_.ProseMirror_ul]:pl-6",
+                    "[&_.ProseMirror_ol]:mb-4 [&_.ProseMirror_ol]:pl-6",
+                    "[&_.ProseMirror_li]:mb-2 [&_.ProseMirror_li]:leading-relaxed",
+                    // Tables
+                    "[&_.ProseMirror_table]:border-collapse [&_.ProseMirror_table]:border [&_.ProseMirror_table]:border-gray-300 [&_.ProseMirror_table]:rounded-lg [&_.ProseMirror_table]:overflow-hidden [&_.ProseMirror_table]:my-6",
+                    "[&_.ProseMirror_th]:border [&_.ProseMirror_th]:border-gray-300 [&_.ProseMirror_th]:bg-gray-50 [&_.ProseMirror_th]:p-3 [&_.ProseMirror_th]:font-semibold [&_.ProseMirror_th]:text-gray-900",
+                    "[&_.ProseMirror_td]:border [&_.ProseMirror_td]:border-gray-300 [&_.ProseMirror_td]:p-3 [&_.ProseMirror_td]:text-gray-800",
+                    // Blockquotes
+                    "[&_.ProseMirror_blockquote]:border-l-4 [&_.ProseMirror_blockquote]:border-blue-500 [&_.ProseMirror_blockquote]:pl-6 [&_.ProseMirror_blockquote]:bg-blue-50 [&_.ProseMirror_blockquote]:py-4 [&_.ProseMirror_blockquote]:my-6 [&_.ProseMirror_blockquote]:italic [&_.ProseMirror_blockquote]:text-blue-900",
+                    // Focus styles
+                    "[&_.ProseMirror:focus]:outline-none",
+                    "[&_.ProseMirror]:cursor-text"
+                  )}
+                />
+              </div>
+            </div>
+
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Fixed Footer */}
+      <Card className="flex-shrink-0 mt-4">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              {/* Document Status */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
+                  {hasChanges ? (
+                    <>
+                      <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-amber-700 font-medium">Editing</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-700 font-medium">Saved</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Document Info */}
+              <div className="text-sm text-gray-600">
+                Compatible with all document formats
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            {!readOnly && (
+              <div className="flex items-center space-x-3">
+                {onCancel && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleCancel}
+                    className="border-gray-300 hover:bg-gray-50 text-gray-700"
+                  >
+                    Cancel
+                  </Button>
+                )}
+                <Button 
+                  onClick={handleSave}
+                  disabled={!hasChanges}
+                  className={cn(
+                    "shadow-sm font-medium",
+                    hasChanges 
+                      ? "bg-blue-600 hover:bg-blue-700 text-white" 
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  )}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {hasChanges ? 'Save Changes' : 'Saved'}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 

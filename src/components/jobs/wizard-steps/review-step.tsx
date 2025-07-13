@@ -150,14 +150,23 @@ export function ReviewStep({
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900">Review & Finalize</h2>
-        <p className="text-gray-600 mt-2">
-          Review all details and make any final edits before creating the job posting
-        </p>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Fixed Header */}
+      <Card className="flex-shrink-0">
+        <CardHeader className="border-b border-gray-100">
+          <div>
+            <CardTitle className="text-2xl font-semibold text-gray-900">Review & Finalize</CardTitle>
+            <p className="text-gray-600 mt-2">
+              Review all details and make any final edits before creating the job posting
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 mt-4">
+        <Card className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto">
 
       {/* Basic Job Information */}
       <Card>
@@ -446,35 +455,36 @@ export function ReviewStep({
             </div>
 
             {/* JD Content */}
-            {isEditingDescription ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Job Description Content
-                </label>
-                <textarea
-                  value={editedJDContent}
-                  onChange={(e) => handleJDContentChange(e.target.value)}
-                  rows={20}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
-                  placeholder="Enter job description content..."
-                />
-                <div className="mt-2 text-xs text-gray-500">
-                  {editedJDContent.length} characters
+            <div className="flex-1 min-h-0">
+              {isEditingDescription ? (
+                <div className="h-full flex flex-col">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Job Description Content
+                  </label>
+                  <textarea
+                    value={editedJDContent}
+                    onChange={(e) => handleJDContentChange(e.target.value)}
+                    className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
+                    placeholder="Enter job description content..."
+                  />
+                  <div className="mt-2 text-xs text-gray-500">
+                    {editedJDContent.length} characters
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <WysiwygEditor
-                content={state.jobDescription.content}
-                onSave={(content) => {
-                  setEditedJDContent(content);
-                  handleJDContentChange(content);
-                }}
-                title="Job Description Preview"
-                readOnly={true}
-                height={300}
-                placeholder="Job description content..."
-              />
-            )}
+              ) : (
+                <WysiwygEditor
+                  content={state.jobDescription.content}
+                  onSave={(content) => {
+                    setEditedJDContent(content);
+                    handleJDContentChange(content);
+                  }}
+                  title="Job Description Preview"
+                  readOnly={true}
+                  className="h-full"
+                  placeholder="Job description content..."
+                />
+              )}
+            </div>
 
             {/* Enhancement Info */}
             {state.enhancementResult && (
@@ -575,23 +585,49 @@ export function ReviewStep({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={!canBack}
-        >
-          Back
-        </Button>
-
-        <Button
-          onClick={handleContinue}
-          className="min-w-[180px]"
-        >
-          {state.jobDescription ? 'Generate Scorecard' : 'Finish Job Creation'}
-        </Button>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Fixed Footer */}
+      <Card className="flex-shrink-0 mt-4">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                {hasUnsavedChanges ? (
+                  <>
+                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-amber-700">Unsaved Changes</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">Review Complete</span>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={!canBack}
+                className="border-gray-300 hover:bg-gray-50 text-gray-700"
+              >
+                Back
+              </Button>
+              <Button
+                onClick={handleContinue}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm min-w-[180px]"
+              >
+                {state.jobDescription ? 'Generate Scorecard' : 'Finish Job Creation'}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

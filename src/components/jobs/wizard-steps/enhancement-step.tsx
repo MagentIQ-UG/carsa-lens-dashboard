@@ -124,14 +124,23 @@ export function EnhancementStep({
   const hasEnhancement = !!state.enhancementResult;
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900">AI Enhancement & Analysis</h2>
-        <p className="text-gray-600 mt-2">
-          Improve your job description with AI-powered enhancements and bias detection
-        </p>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Fixed Header */}
+      <Card className="flex-shrink-0">
+        <CardHeader className="border-b border-gray-100">
+          <div>
+            <CardTitle className="text-2xl font-semibold text-gray-900">AI Enhancement & Analysis</CardTitle>
+            <p className="text-gray-600 mt-2">
+              Improve your job description with AI-powered enhancements and bias detection
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 mt-4">
+        <Card className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto">
 
       {/* Enhancement Options */}
       {!hasEnhancement && (
@@ -449,48 +458,77 @@ export function EnhancementStep({
         </Card>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={!canBack}
-        >
-          Back
-        </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-        <div className="flex space-x-3">
-          {!hasEnhancement ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={handleSkip}
-              >
-                Skip Enhancement
-              </Button>
-              <Button
-                onClick={handleEnhance}
-                disabled={!canEnhance}
-                className="min-w-[120px]"
-              >
-                {enhanceMutation.isPending ? (
-                  <LoadingSpinner size="sm" />
+      {/* Fixed Footer */}
+      <Card className="flex-shrink-0 mt-4">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                {hasEnhancement ? (
+                  <>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Enhancement Complete</span>
+                  </>
                 ) : (
                   <>
-                    <Wand2 className="h-4 w-4 mr-2" />
-                    Enhance
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Enhancement Available</span>
                   </>
                 )}
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={!canBack}
+                className="border-gray-300 hover:bg-gray-50 text-gray-700"
+              >
+                Back
               </Button>
-            </>
-          ) : (
-            <Button onClick={onNext}>
-              Continue to Review
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          )}
-        </div>
-      </div>
+              
+              {!hasEnhancement ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={handleSkip}
+                    className="border-gray-300 hover:bg-gray-50 text-gray-700"
+                  >
+                    Skip Enhancement
+                  </Button>
+                  <Button
+                    onClick={handleEnhance}
+                    disabled={!canEnhance}
+                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm min-w-[120px]"
+                  >
+                    {enhanceMutation.isPending ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <>
+                        <Wand2 className="h-4 w-4 mr-2" />
+                        Enhance
+                      </>
+                    )}
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  onClick={onNext}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                >
+                  Continue to Review
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

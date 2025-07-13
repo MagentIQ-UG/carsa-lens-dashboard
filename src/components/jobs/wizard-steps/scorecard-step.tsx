@@ -520,17 +520,26 @@ export function ScorecardStep({
 
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900">Evaluation Scorecard</h2>
-        <p className="text-gray-600 mt-2">
-          {state.scorecard 
-            ? 'Your AI-powered evaluation scorecard has been generated successfully!'
-            : 'Generating an AI-powered evaluation scorecard based on your job description...'
-          }
-        </p>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Fixed Header */}
+      <Card className="flex-shrink-0">
+        <CardHeader className="border-b border-gray-100">
+          <div>
+            <CardTitle className="text-2xl font-semibold text-gray-900">Evaluation Scorecard</CardTitle>
+            <p className="text-gray-600 mt-2">
+              {state.scorecard 
+                ? 'Your AI-powered evaluation scorecard has been generated successfully!'
+                : 'Generating an AI-powered evaluation scorecard based on your job description...'
+              }
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Scrollable Content Area */}
+      <div className="flex-1 flex flex-col min-h-0 mt-4">
+        <Card className="flex-1 flex flex-col">
+          <CardContent className="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto">
 
       {/* Generation Status */}
       {isGenerating && (
@@ -815,187 +824,231 @@ export function ScorecardStep({
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex items-center justify-between pt-6 border-t">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={!canBack || isGenerating}
-        >
-          Back
-        </Button>
-
-        <div className="flex space-x-3">
-          {state.scorecard ? (
-            <Button
-              onClick={onComplete}
-              size="lg"
-              className="min-w-[160px]"
-            >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Complete & View Job
-            </Button>
-          ) : !isGenerating && state.jobDescription ? (
-            <Button
-              onClick={() => {
-                hasAttemptedGeneration.current = false; // Reset for manual generation
-                handleGenerate();
-              }}
-              disabled={generateScorecardMutation.isPending}
-              className="min-w-[160px]"
-            >
-              {generateScorecardMutation.isPending ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                <>
-                  <Wand2 className="h-4 w-4 mr-2" />
-                  Generate Scorecard
-                </>
-              )}
-            </Button>
-          ) : null}
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Preview Modal with Markdown Editor */}
+      {/* Fixed Footer */}
+      <Card className="flex-shrink-0 mt-4">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                {state.scorecard ? (
+                  <>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Scorecard Ready</span>
+                  </>
+                ) : isGenerating ? (
+                  <>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium text-gray-700">Generating Scorecard...</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Scorecard Needed</span>
+                  </>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center space-x-3">
+              <Button
+                variant="outline"
+                onClick={onBack}
+                disabled={!canBack || isGenerating}
+                className="border-gray-300 hover:bg-gray-50 text-gray-700"
+              >
+                Back
+              </Button>
+              
+              {state.scorecard ? (
+                <Button
+                  onClick={onComplete}
+                  className="bg-green-600 hover:bg-green-700 text-white font-medium shadow-sm min-w-[160px]"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Complete & View Job
+                </Button>
+              ) : !isGenerating && state.jobDescription ? (
+                <Button
+                  onClick={() => {
+                    hasAttemptedGeneration.current = false;
+                    handleGenerate();
+                  }}
+                  disabled={generateScorecardMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm min-w-[160px]"
+                >
+                  {generateScorecardMutation.isPending ? (
+                    <LoadingSpinner size="sm" />
+                  ) : (
+                    <>
+                      <Wand2 className="h-4 w-4 mr-2" />
+                      Generate Scorecard
+                    </>
+                  )}
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Improved Scrollable Modal */}
       <Modal
         isOpen={showPreviewModal}
         onClose={() => setShowPreviewModal(false)}
         size="4xl"
-        showCloseButton={true}
+        showCloseButton={false}
       >
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Scorecard Preview & Editor</h2>
-              <p className="text-gray-600">Review and edit your scorecard content before approval</p>
+        <div className="flex flex-col h-full max-h-[90vh]">
+          {/* Fixed Header */}
+          <div className="flex-shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Scorecard Editor</h2>
+                <p className="text-sm text-gray-600 mt-1">Edit your scorecard content with our professional editor</p>
+              </div>
+              {state.scorecard && (
+                <div className="flex items-center space-x-3">
+                  <Badge variant={(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'success' : 'default'}>
+                    {(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'Approved' : 'Draft'}
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowPreviewModal(false)}
+                    className="border-gray-300 hover:bg-gray-50"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Close
+                  </Button>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto bg-gray-50">
             {state.scorecard && (
-              <div className="flex items-center space-x-2">
-                <Badge variant={(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'success' : 'default'}>
-                  {(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'Approved' : 'Draft'}
-                </Badge>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPreviewModal(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+              <div className="p-6">
+                {/* Loading State */}
+                {isLoadingScorecard && (
+                  <div className="flex items-center justify-center py-12">
+                    <LoadingSpinner size="lg" />
+                    <span className="ml-3 text-gray-600">Loading detailed scorecard...</span>
+                  </div>
+                )}
+
+                {/* WYSIWYG Editor */}
+                {!isLoadingScorecard && (
+                  <div className="bg-white rounded-lg shadow-sm h-96">
+                    <WysiwygEditor
+                      content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                      onSave={handleSaveContent}
+                      title={`${state.scorecard.name}`}
+                      readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved || false}
+                      className="h-full"
+                      placeholder="Scorecard content..."
+                    />
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {state.scorecard && (
-            <div className="space-y-6">
-              {/* Loading State */}
-              {isLoadingScorecard && (
-                <div className="flex items-center justify-center py-8">
-                  <LoadingSpinner size="lg" />
-                  <span className="ml-3 text-gray-600">Loading detailed scorecard...</span>
-                </div>
-              )}
-
-              {/* WYSIWYG Editor */}
-              {!isLoadingScorecard && (
-                <WysiwygEditor
-                  content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
-                  onSave={handleSaveContent}
-                  onCancel={() => setShowPreviewModal(false)}
-                  title={`${state.scorecard.name} - Content Editor`}
-                  readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved || false}
-                  height={500}
-                  placeholder="Scorecard content..."
-                />
-              )}
-
-              {/* Action Bar */}
-              <div className="flex items-center justify-between pt-4 border-t bg-gray-50 -mx-6 -mb-6 px-6 py-4">
-                <div className="flex items-center space-x-4">
-                  <div className="text-sm text-gray-600">
-                    <div className="font-medium">Scorecard Status</div>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <span>Criteria: {state.scorecard.criteria_count}</span>
-                      <span>•</span>
-                      <span>Weight: {state.scorecard.total_weight}</span>
-                      <span>•</span>
-                      <span>{(detailedScorecard?.is_approved || state.scorecard.is_approved) ? 'Approved' : 'Pending Approval'}</span>
-                    </div>
+          {/* Fixed Footer */}
+          <div className="flex-shrink-0 border-t border-gray-200 bg-white px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-6">
+                <div className="text-sm text-gray-600">
+                  <div className="font-medium text-gray-900">Scorecard Status</div>
+                  <div className="flex items-center space-x-3 mt-1 text-xs">
+                    <span>Criteria: {state.scorecard?.criteria_count || 0}</span>
+                    <span>•</span>
+                    <span>Weight: {state.scorecard?.total_weight || 0}</span>
+                    <span>•</span>
+                    <span>{(detailedScorecard?.is_approved || state.scorecard?.is_approved) ? 'Approved' : 'Pending Approval'}</span>
                   </div>
-                </div>
-
-                <div className="flex space-x-2">
-                  {/* Download Options */}
-                  <div className="relative">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowDownloadMenu(!showDownloadMenu);
-                      }}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Download
-                      <ChevronDown className="h-3 w-3 ml-1" />
-                    </Button>
-                    {showDownloadMenu && (
-                      <div 
-                        className="absolute right-0 mt-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <div className="py-1">
-                          <button
-                            onClick={() => {
-                              handleDownload('txt');
-                              setShowDownloadMenu(false);
-                            }}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Text Format (.txt)
-                          </button>
-                          <button
-                            onClick={() => {
-                              handleDownload('json');
-                              setShowDownloadMenu(false);
-                            }}
-                            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            JSON Format (.json)
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Approval Button */}
-                  {!(detailedScorecard?.is_approved || state.scorecard.is_approved) && (
-                    <Button
-                      onClick={handleApprove}
-                      disabled={approveScorecardMutation.isPending || isLoadingScorecard}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      {approveScorecardMutation.isPending ? (
-                        <LoadingSpinner size="sm" />
-                      ) : (
-                        <>
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Approve Scorecard
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {(detailedScorecard?.is_approved || state.scorecard.is_approved) && (
-                    <Button onClick={() => setShowPreviewModal(false)}>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Done
-                    </Button>
-                  )}
                 </div>
               </div>
+
+              <div className="flex items-center space-x-3">
+                {/* Download Options */}
+                <div className="relative">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDownloadMenu(!showDownloadMenu);
+                    }}
+                    className="border-gray-300 hover:bg-gray-50"
+                  >
+                    <Download className="h-4 w-4 mr-1" />
+                    Download
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                  {showDownloadMenu && (
+                    <div 
+                      className="absolute right-0 bottom-full mb-1 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-10"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleDownload('txt');
+                            setShowDownloadMenu(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          Text Format (.txt)
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleDownload('json');
+                            setShowDownloadMenu(false);
+                          }}
+                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        >
+                          JSON Format (.json)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Approval Button */}
+                {!(detailedScorecard?.is_approved || state.scorecard?.is_approved) && (
+                  <Button
+                    onClick={handleApprove}
+                    disabled={approveScorecardMutation.isPending || isLoadingScorecard}
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium"
+                  >
+                    {approveScorecardMutation.isPending ? (
+                      <LoadingSpinner size="sm" />
+                    ) : (
+                      <>
+                        <ThumbsUp className="h-4 w-4 mr-2" />
+                        Approve Scorecard
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {(detailedScorecard?.is_approved || state.scorecard?.is_approved) && (
+                  <Button 
+                    onClick={() => setShowPreviewModal(false)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Done
+                  </Button>
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </Modal>
     </div>

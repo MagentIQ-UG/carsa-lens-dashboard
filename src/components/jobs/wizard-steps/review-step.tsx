@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Edit3, Save, Calendar, MapPin, Building, DollarSign, Users, Briefcase, AlertCircle, CheckCircle } from 'lucide-react';
+import { Edit3, Save, Calendar, MapPin, Building, DollarSign, Users, Briefcase, AlertCircle, CheckCircle, FileText, Eye } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,9 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Select } from '@/components/ui/select';
-import { DocumentReviewContainer } from '@/components/ui/document-review-container';
-import { DocumentEditor } from '@/components/ui/document-editor';
-import { DocumentViewer } from '@/components/ui/document-viewer';
+import { ProfessionalJobEditor } from '@/components/ui/professional-job-editor';
 
 import { useUpdateJob } from '@/hooks/jobs';
 import { formatCurrency, formatJobType, formatJobMode, formatSeniorityLevel } from '@/lib/utils';
@@ -172,47 +170,28 @@ export function ReviewStep({
   const documentHasChanges = editorContent !== (state.jobDescription?.content || '');
 
   return (
-    <DocumentReviewContainer
-      title="Review & Finalize"
-      showProgress={true}
-      currentStep={4}
-      totalSteps={4}
-      stepTitle="Review & Finalize"
-      hasChanges={documentHasChanges || hasUnsavedChanges}
-      isReadOnly={!isEditingDescription}
-      isGeneratedContent={state.jobDescription?.source === 'generated'}
-      onSave={() => {
-        if (isEditingDescription) {
-          handleSaveDocument(editorContent);
-          setIsEditingDescription(false);
-        } else {
-          handleContinue();
-        }
-      }}
-      onCancel={onBack}
-      onEdit={() => setIsEditingDescription(!isEditingDescription)}
-      metadata={{
-        wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
-        characterCount: editorContent ? editorContent.length : 0,
-        lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
-        version: state.jobDescription?.version
-      }}
-    >
+    <div className="space-y-8 animate-fade-in-up page-enter">
       <div className="space-y-8">
 
       {/* Basic Job Information */}
-      <Card>
+      <Card variant="interactive" className="hover-lift micro-interaction animate-zoom-in">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center">
-              <Briefcase className="h-5 w-5 mr-2 text-blue-600" />
+            <CardTitle className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
               Basic Job Information
+              {hasUnsavedChanges && (
+                <Badge variant="warning" className="text-xs animate-pulse">
+                  Modified
+                </Badge>
+              )}
             </CardTitle>
             {!isEditingBasic ? (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setIsEditingBasic(true)}
+                className="hover-lift micro-bounce"
               >
                 <Edit3 className="h-4 w-4 mr-1" />
                 Edit
@@ -223,6 +202,7 @@ export function ReviewStep({
                   size="sm"
                   variant="outline"
                   onClick={cancelBasicEdit}
+                  className="hover-lift micro-bounce"
                 >
                   Cancel
                 </Button>
@@ -230,6 +210,7 @@ export function ReviewStep({
                   size="sm"
                   onClick={saveBasicChanges}
                   disabled={updateJobMutation.isPending}
+                  className="btn-interactive micro-tap"
                 >
                   {updateJobMutation.isPending ? (
                     <LoadingSpinner size="sm" />
@@ -470,18 +451,81 @@ export function ReviewStep({
           )}
 
           {/* Document Content */}
-          <div className="bg-white rounded-lg border border-gray-200">
-            {isEditingDescription ? (
-              <DocumentEditor
+          <Card variant="elevated" className="overflow-hidden">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  Job Description
+                  {state.jobDescription?.source === 'generated' && (
+                    <Badge variant="secondary" className="text-xs">
+                      AI Generated
+                    </Badge>
+                  )}
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={isEditingDescription ? "outline" : "ghost"}
+                    onClick={() => setIsEditingDescription(!isEditingDescription)}
+                    className="hover-lift micro-bounce"
+                  >
+                    {isEditingDescription ? (
+                      <>
+                        <Eye className="h-4 w-4 mr-1" />
+                        Preview
+                      </>
+                    ) : (
+                      <>
+                        <Edit3 className="h-4 w-4 mr-1" />
+                        Edit
+                      </>
+                    )}
+                  </Button>
+                  {isEditingDescription && documentHasChanges && (
+                    <Button
+                      size="sm"
+                      onClick={() => handleSaveDocument(editorContent)}
+                      className="hover-lift micro-tap"
+                    >
+                      <Save className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {/* Metadata */}
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span>{editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0} words</span>
+                <span>{editorContent ? editorContent.length : 0} characters</span>
+                {state.jobDescription?.updated_at && (
+                  <span>Modified {new Date(state.jobDescription.updated_at).toLocaleDateString()}</span>
+                )}
+                <span>Version {state.jobDescription?.version || 1}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <ProfessionalJobEditor
                 content={editorContent}
                 onChange={setEditorContent}
+                onSave={() => {
+                  handleSaveDocument(editorContent);
+                  setIsEditingDescription(false);
+                }}
+                onCancel={() => {
+                  setEditorContent(state.jobDescription?.content || '');
+                  setIsEditingDescription(false);
+                }}
+                title=""
                 placeholder="Edit your job description..."
-                autoFocus={true}
+                readOnly={!isEditingDescription}
+                isGeneratedContent={state.jobDescription?.source === 'generated'}
+                hasChanges={documentHasChanges}
+                autoFocus={isEditingDescription}
+                className="border-0"
               />
-            ) : (
-              <DocumentViewer content={editorContent} />
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
       ) : state.skipJobDescription ? (
         <Card>
@@ -501,11 +545,14 @@ export function ReviewStep({
       ) : null}
 
       {/* Summary */}
-      <Card>
+      <Card variant="feature" className="animate-slide-in-bottom hover-tilt micro-interaction">
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-600 ai-pulse" />
             Summary
+            <Badge variant="success" className="text-xs">
+              Ready to Proceed
+            </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -558,7 +605,46 @@ export function ReviewStep({
       )}
 
       </div>
-    </DocumentReviewContainer>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-6 border-t border-border/50 animate-slide-in-bottom">
+        <Button
+          variant="outline"
+          onClick={onBack}
+          className="hover-lift micro-bounce"
+        >
+          Back
+        </Button>
+
+        <div className="flex items-center gap-3">
+          {(documentHasChanges || hasUnsavedChanges) && (
+            <div className="flex items-center gap-2 text-sm text-amber-600">
+              <AlertCircle className="h-4 w-4" />
+              <span>You have unsaved changes</span>
+            </div>
+          )}
+          
+          <Button
+            onClick={handleContinue}
+            className="btn-interactive hover-float micro-tap"
+            variant="gradient"
+            size="lg"
+          >
+            {isEditingDescription && documentHasChanges ? (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save & Continue
+              </>
+            ) : (
+              <>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Finalize Job
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -41,8 +41,8 @@ describe('UI Components', () => {
 
     it('applies variant classes correctly', () => {
       render(<Card variant="elevated">Elevated Card</Card>);
-      const card = screen.getByText('Elevated Card').closest('div');
-      expect(card).toHaveClass('shadow-lg');
+      const cardContainer = screen.getByText('Elevated Card').closest('[class*="shadow-elevation"]');
+      expect(cardContainer).toHaveClass('shadow-elevation-4');
     });
   });
 

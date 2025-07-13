@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Wand2, CheckCircle, AlertTriangle, Eye, Search, Users, ArrowRight, RotateCcw } from 'lucide-react';
+import { Wand2, CheckCircle, AlertTriangle, Eye, Search, Users, RotateCcw } from 'lucide-react';
 import { useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
-import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
+import { DocumentReviewContainer } from '@/components/ui/document-review-container';
+import { DocumentEditor } from '@/components/ui/document-editor';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 
 import { useEnhanceJobDescription } from '@/hooks/jobs';
 import { cn } from '@/lib/utils';
@@ -50,13 +52,15 @@ export function EnhancementStep({
   onStateChange, 
   onNext, 
   onBack,
-  canBack
+  canBack: _canBack
 }: WizardStepProps) {
   const enhanceMutation = useEnhanceJobDescription();
 
   const [selectedTypes, setSelectedTypes] = useState<('clarity' | 'bias_detection' | 'keywords')[]>(['clarity', 'bias_detection']);
   const [customInstructions, setCustomInstructions] = useState('');
   const [showOriginal, setShowOriginal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editorContent, setEditorContent] = useState(state.jobDescription?.content || '');
 
   // Toggle enhancement type
   const toggleType = (type: 'clarity' | 'bias_detection' | 'keywords') => {
@@ -89,6 +93,7 @@ export function EnhancementStep({
         enhancementAnalysis: result.analysis,
         enhancementResult: result,
       });
+      setEditorContent(result.enhanced_description.content);
     } catch (error) {
       console.error('Enhancement failed:', error);
     }
@@ -123,24 +128,51 @@ export function EnhancementStep({
   const canEnhance = selectedTypes.length > 0 && !enhanceMutation.isPending;
   const hasEnhancement = !!state.enhancementResult;
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Fixed Header */}
-      <Card className="flex-shrink-0">
-        <CardHeader className="border-b border-gray-100">
-          <div>
-            <CardTitle className="text-2xl font-semibold text-gray-900">AI Enhancement & Analysis</CardTitle>
-            <p className="text-gray-600 mt-2">
-              Improve your job description with AI-powered enhancements and bias detection
-            </p>
-          </div>
-        </CardHeader>
-      </Card>
+  // Save editor content
+  const handleSaveContent = (content: string) => {
+    setEditorContent(content);
+    if (state.jobDescription) {
+      onStateChange({
+        jobDescription: {
+          ...state.jobDescription,
+          content: content
+        }
+      });
+    }
+  };
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 mt-4">
-        <Card className="flex-1 flex flex-col">
-          <CardContent className="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto">
+  const hasChanges = editorContent !== (state.jobDescription?.content || '');
+
+  return (
+    <DocumentReviewContainer
+      title="AI Enhancement & Analysis"
+      showProgress={true}
+      currentStep={3}
+      totalSteps={4}
+      stepTitle="Enhancement & Analysis"
+      hasChanges={hasChanges}
+      isReadOnly={!isEditing}
+      isGeneratedContent={state.jobDescription?.source === 'generated'}
+      onSave={() => {
+        if (isEditing) {
+          handleSaveContent(editorContent);
+          setIsEditing(false);
+        } else {
+          onNext();
+        }
+      }}
+      onCancel={onBack}
+      onEdit={() => setIsEditing(!isEditing)}
+      onEnhance={state.jobDescription && !hasEnhancement ? handleEnhance : undefined}
+      enhanceLoading={enhanceMutation.isPending}
+      metadata={{
+        wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
+        characterCount: editorContent ? editorContent.length : 0,
+        lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
+        version: state.jobDescription?.version
+      }}
+    >
+      <div className="space-y-8">
 
       {/* Enhancement Options */}
       {!hasEnhancement && (
@@ -403,133 +435,95 @@ export function EnhancementStep({
         </div>
       )}
 
-      {/* Job Description Preview */}
+      {/* Job Description Editor/Viewer */}
       {state.jobDescription && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>
-                {showOriginal ? 'Original' : 'Enhanced'} Job Description
-              </span>
-              {hasEnhancement && (
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleReset}
-                    className="flex items-center space-x-1"
-                  >
-                    <RotateCcw className="h-3 w-3" />
-                    <span>Reset</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={handleEnhance}
-                    disabled={!canEnhance}
-                  >
-                    Re-enhance
-                  </Button>
-                </div>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <WysiwygEditor
-              content={showOriginal && state.uploadResult 
-                ? state.uploadResult.job_description.content
-                : state.jobDescription.content
-              }
-              onSave={(content) => {
-                if (state.jobDescription) {
-                  onStateChange({
-                    jobDescription: {
-                      ...state.jobDescription,
-                      content: content
-                    }
-                  });
-                }
-              }}
-              title={`${showOriginal ? 'Original' : 'Enhanced'} Job Description`}
-              readOnly={false}
-              height={300}
-              placeholder="Job description content..."
-            />
-          </CardContent>
-        </Card>
-      )}
-
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Fixed Footer */}
-      <Card className="flex-shrink-0 mt-4">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                {hasEnhancement ? (
-                  <>
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Enhancement Complete</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Enhancement Available</span>
-                  </>
-                )}
+        <div className="space-y-4">
+          {/* Enhancement Controls */}
+          {hasEnhancement && (
+            <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                <span className="text-green-700 font-medium">Enhancement Applied</span>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowOriginal(!showOriginal)}
+                  className="flex items-center space-x-1"
+                >
+                  <Eye className="h-3 w-3" />
+                  <span>{showOriginal ? 'Show Enhanced' : 'Show Original'}</span>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleReset}
+                  className="flex items-center space-x-1"
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  <span>Reset</span>
+                </Button>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
+          )}
+
+          {/* Document Content */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            {isEditing ? (
+              <DocumentEditor
+                content={editorContent}
+                onChange={setEditorContent}
+                placeholder="Edit your job description..."
+                autoFocus={true}
+              />
+            ) : (
+              <DocumentViewer 
+                content={showOriginal && state.uploadResult 
+                  ? state.uploadResult.job_description.content
+                  : editorContent
+                } 
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Enhancement Actions */}
+      {!hasEnhancement && !isEditing && (
+        <div className="mt-8 p-6 bg-purple-50 border border-purple-200 rounded-lg">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-purple-900 mb-2">Ready to Enhance?</h3>
+            <p className="text-purple-700 mb-4">Apply AI-powered enhancements to improve clarity and detect bias</p>
+            <div className="flex justify-center space-x-3">
               <Button
                 variant="outline"
-                onClick={onBack}
-                disabled={!canBack}
-                className="border-gray-300 hover:bg-gray-50 text-gray-700"
+                onClick={handleSkip}
+                className="border-purple-300 hover:bg-purple-100 text-purple-700"
               >
-                Back
+                Skip Enhancement
               </Button>
-              
-              {!hasEnhancement ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={handleSkip}
-                    className="border-gray-300 hover:bg-gray-50 text-gray-700"
-                  >
-                    Skip Enhancement
-                  </Button>
-                  <Button
-                    onClick={handleEnhance}
-                    disabled={!canEnhance}
-                    className="bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm min-w-[120px]"
-                  >
-                    {enhanceMutation.isPending ? (
-                      <LoadingSpinner size="sm" />
-                    ) : (
-                      <>
-                        <Wand2 className="h-4 w-4 mr-2" />
-                        Enhance
-                      </>
-                    )}
-                  </Button>
-                </>
-              ) : (
-                <Button 
-                  onClick={onNext}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
-                >
-                  Continue to Review
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              )}
+              <Button
+                onClick={handleEnhance}
+                disabled={!canEnhance}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium shadow-sm min-w-[120px]"
+              >
+                {enhanceMutation.isPending ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Enhance Now
+                  </>
+                )}
+              </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      )}
+
+      </div>
+    </DocumentReviewContainer>
   );
 }
 

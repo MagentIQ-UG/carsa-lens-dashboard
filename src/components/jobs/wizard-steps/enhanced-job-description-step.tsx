@@ -12,7 +12,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
+import { DocumentReviewContainer } from '@/components/ui/document-review-container';
+import { DocumentEditor } from '@/components/ui/document-editor';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 
 import { useUploadJobDescription, useGenerateJobDescription, useEnhanceJobDescription } from '@/hooks/jobs';
 import { formatFileSize, formatJobType, formatJobMode } from '@/lib/utils';
@@ -38,6 +40,7 @@ export function EnhancedJobDescriptionStep({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [editorContent, setEditorContent] = useState('');
 
   // Generation form state
@@ -281,143 +284,75 @@ export function EnhancedJobDescriptionStep({
 
   if (showEditor) {
     return (
-      <div className="h-full flex flex-col">
-        {/* Fixed Header */}
-        <Card className="flex-shrink-0">
-          <CardHeader className="border-b border-gray-100">
-            <div className="flex items-center justify-between">
+      <DocumentReviewContainer
+        title="Job Description"
+        showProgress={true}
+        currentStep={2}
+        totalSteps={4}
+        stepTitle="Job Description Creation"
+        hasChanges={editorContent !== (state.jobDescription?.content || '')}
+        isReadOnly={!isEditing}
+        isGeneratedContent={state.jobDescription?.source === 'generated'}
+        onSave={() => {
+          if (isEditing) {
+            handleSaveContent(editorContent);
+            setIsEditing(false);
+          } else {
+            handleContinue();
+          }
+        }}
+        onCancel={() => setShowEditor(false)}
+        onEdit={() => setIsEditing(!isEditing)}
+        onEnhance={state.jobDescription ? handleEnhance : undefined}
+        enhanceLoading={enhanceMutation.isPending}
+        metadata={{
+          wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
+          characterCount: editorContent ? editorContent.length : 0,
+          lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
+          version: state.jobDescription?.version
+        }}
+      >
+        {isEditing ? (
+          <DocumentEditor
+            content={editorContent}
+            onChange={setEditorContent}
+            placeholder="Write a comprehensive job description..."
+            autoFocus={true}
+          />
+        ) : (
+          <DocumentViewer content={editorContent} />
+        )}
+        
+        {/* Enhancement Results Banner */}
+        {state.enhancementResult && (
+          <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <Sparkles className="h-5 w-5 text-green-600 mt-0.5" />
               <div>
-                <CardTitle className="text-xl font-semibold text-gray-900">Edit Job Description</CardTitle>
-                <p className="text-gray-600 mt-1">
-                  Review and customize your job description using our user-friendly editor.
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => setShowEditor(false)}
-                className="flex items-center"
-              >
-                <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-                Change Method
-              </Button>
-            </div>
-          </CardHeader>
-        </Card>
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 mt-4">
-          <Card className="flex-1 flex flex-col">
-            <CardContent className="flex-1 flex flex-col p-6 space-y-6">
-              {/* Modern Editor Experience */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-                <div className="flex items-start space-x-4">
-                  <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Sparkles className="h-6 w-6 text-blue-600" />
+                <h4 className="font-medium text-green-900 mb-2">Enhancement Applied!</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-green-700 font-medium">Clarity Score:</span>
+                    <div className="text-green-800">{Math.round(state.enhancementResult.analysis.clarity_score)}%</div>
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-lg font-semibold text-blue-900 mb-2">Professional Document Editor</h4>
-                    <p className="text-blue-800 mb-4">
-                      Edit your job description just like Microsoft Word. Format text, create tables, add lists - all with visual formatting you can see instantly.
-                    </p>
-                    <div className="flex items-center space-x-6 text-sm text-blue-700">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Rich text formatting</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Tables & lists</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-4 w-4" />
-                        <span>AI enhancement</span>
-                      </div>
-                    </div>
+                  <div>
+                    <span className="text-green-700 font-medium">Bias Score:</span>
+                    <div className="text-green-800">{Math.round(state.enhancementResult.analysis.bias_score)}%</div>
+                  </div>
+                  <div>
+                    <span className="text-green-700 font-medium">Quality Score:</span>
+                    <div className="text-green-800">{Math.round(state.enhancementResult.analysis.overall_quality_score)}%</div>
+                  </div>
+                  <div>
+                    <span className="text-green-700 font-medium">Improvements:</span>
+                    <div className="text-green-800">{state.enhancementResult.analysis.enhancement_suggestions_count}</div>
                   </div>
                 </div>
               </div>
-
-              {/* WYSIWYG Editor */}
-              <div className="flex-1 min-h-0">
-                <WysiwygEditor
-                  content={editorContent}
-                  onSave={handleSaveContent}
-                  title="Job Description"
-                  className="h-full"
-                  isGeneratedContent={state.jobDescription?.source === 'generated'}
-                  onEnhance={state.jobDescription ? handleEnhance : undefined}
-                  enhanceLoading={enhanceMutation.isPending}
-                  placeholder="Write a comprehensive job description..."
-                />
-              </div>
-
-              {/* Enhancement Results */}
-              {state.enhancementResult && (
-                <Card className="bg-green-50 border-green-200">
-                  <CardContent className="pt-6">
-                    <div className="flex items-start space-x-3">
-                      <Sparkles className="h-5 w-5 text-green-600 mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-green-900 mb-2">Enhancement Applied!</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div>
-                            <span className="text-green-700 font-medium">Clarity Score:</span>
-                            <div className="text-green-800">{Math.round(state.enhancementResult.analysis.clarity_score * 100)}%</div>
-                          </div>
-                          <div>
-                            <span className="text-green-700 font-medium">Bias Score:</span>
-                            <div className="text-green-800">{Math.round(state.enhancementResult.analysis.bias_score * 100)}%</div>
-                          </div>
-                          <div>
-                            <span className="text-green-700 font-medium">Quality Score:</span>
-                            <div className="text-green-800">{Math.round(state.enhancementResult.analysis.overall_quality_score * 100)}%</div>
-                          </div>
-                          <div>
-                            <span className="text-green-700 font-medium">Improvements:</span>
-                            <div className="text-green-800">{state.enhancementResult.analysis.enhancement_suggestions_count}</div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Fixed Footer */}
-        <Card className="flex-shrink-0 mt-4">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-700">Job Description Ready</span>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={onBack}
-                  disabled={!canBack}
-                  className="border-gray-300 hover:bg-gray-50 text-gray-700"
-                >
-                  Back
-                </Button>
-                <Button 
-                  onClick={handleContinue} 
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
-                >
-                  Continue to Enhancement
-                  <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-              </div>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        )}
+      </DocumentReviewContainer>
     );
   }
 

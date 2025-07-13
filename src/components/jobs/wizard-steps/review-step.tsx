@@ -5,7 +5,7 @@
 
 'use client';
 
-import { Edit3, Eye, Save, Calendar, MapPin, Building, DollarSign, Users, Briefcase, AlertCircle, CheckCircle } from 'lucide-react';
+import { Edit3, Save, Calendar, MapPin, Building, DollarSign, Users, Briefcase, AlertCircle, CheckCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Select } from '@/components/ui/select';
-import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
+import { DocumentReviewContainer } from '@/components/ui/document-review-container';
+import { DocumentEditor } from '@/components/ui/document-editor';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 
 import { useUpdateJob } from '@/hooks/jobs';
 import { formatCurrency, formatJobType, formatJobMode, formatSeniorityLevel } from '@/lib/utils';
@@ -32,13 +34,14 @@ export function ReviewStep({
   onStateChange, 
   onNext, 
   onBack,
-  canBack
+  canBack: _canBack
 }: WizardStepProps) {
   const updateJobMutation = useUpdateJob();
 
   const [isEditingBasic, setIsEditingBasic] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [editorContent, setEditorContent] = useState(state.jobDescription?.content || '');
 
   const [editedJobData, setEditedJobData] = useState<JobCreateRequest>({
     title: state.job?.title || '',
@@ -58,6 +61,7 @@ export function ReviewStep({
   useEffect(() => {
     if (state.jobDescription) {
       setEditedJDContent(state.jobDescription.content);
+      setEditorContent(state.jobDescription.content);
     }
   }, [state.jobDescription]);
 
@@ -67,11 +71,12 @@ export function ReviewStep({
     setHasUnsavedChanges(true);
   };
 
-  // Handle JD content changes
-  const handleJDContentChange = (content: string) => {
-    setEditedJDContent(content);
-    setHasUnsavedChanges(true);
-  };
+  // Handle JD content changes (kept for potential future use)
+  // const handleJDContentChange = (content: string) => {
+  //   setEditedJDContent(content);
+  //   setEditorContent(content);
+  //   setHasUnsavedChanges(true);
+  // };
 
   // Save basic job info changes
   const saveBasicChanges = async () => {
@@ -127,11 +132,11 @@ export function ReviewStep({
     setHasUnsavedChanges(false);
   };
 
-  const cancelJDEdit = () => {
-    setEditedJDContent(state.jobDescription?.content || '');
-    setIsEditingDescription(false);
-    setHasUnsavedChanges(false);
-  };
+  // const cancelJDEdit = () => {
+  //   setEditedJDContent(state.jobDescription?.content || '');
+  //   setIsEditingDescription(false);
+  //   setHasUnsavedChanges(false);
+  // };
 
   // Proceed to next step
   const handleContinue = () => {
@@ -149,24 +154,51 @@ export function ReviewStep({
     onNext();
   };
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Fixed Header */}
-      <Card className="flex-shrink-0">
-        <CardHeader className="border-b border-gray-100">
-          <div>
-            <CardTitle className="text-2xl font-semibold text-gray-900">Review & Finalize</CardTitle>
-            <p className="text-gray-600 mt-2">
-              Review all details and make any final edits before creating the job posting
-            </p>
-          </div>
-        </CardHeader>
-      </Card>
+  // Save document content
+  const handleSaveDocument = (content: string) => {
+    setEditorContent(content);
+    setEditedJDContent(content);
+    if (state.jobDescription) {
+      onStateChange({
+        jobDescription: {
+          ...state.jobDescription,
+          content: content
+        }
+      });
+    }
+    setHasUnsavedChanges(false);
+  };
 
-      {/* Scrollable Content Area */}
-      <div className="flex-1 flex flex-col min-h-0 mt-4">
-        <Card className="flex-1 flex flex-col">
-          <CardContent className="flex-1 flex flex-col p-6 space-y-8 overflow-y-auto">
+  const documentHasChanges = editorContent !== (state.jobDescription?.content || '');
+
+  return (
+    <DocumentReviewContainer
+      title="Review & Finalize"
+      showProgress={true}
+      currentStep={4}
+      totalSteps={4}
+      stepTitle="Review & Finalize"
+      hasChanges={documentHasChanges || hasUnsavedChanges}
+      isReadOnly={!isEditingDescription}
+      isGeneratedContent={state.jobDescription?.source === 'generated'}
+      onSave={() => {
+        if (isEditingDescription) {
+          handleSaveDocument(editorContent);
+          setIsEditingDescription(false);
+        } else {
+          handleContinue();
+        }
+      }}
+      onCancel={onBack}
+      onEdit={() => setIsEditingDescription(!isEditingDescription)}
+      metadata={{
+        wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
+        characterCount: editorContent ? editorContent.length : 0,
+        lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
+        version: state.jobDescription?.version
+      }}
+    >
+      <div className="space-y-8">
 
       {/* Basic Job Information */}
       <Card>
@@ -386,131 +418,71 @@ export function ReviewStep({
 
       {/* Job Description */}
       {state.jobDescription ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center">
-                <Eye className="h-5 w-5 mr-2 text-green-600" />
-                Job Description
-                {state.jobDescription.enhancement_applied && (
-                  <Badge variant="secondary" outlined className="ml-2">
-                    AI Enhanced
-                  </Badge>
-                )}
-              </CardTitle>
-              {!isEditingDescription ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setIsEditingDescription(true)}
-                >
-                  <Edit3 className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
-              ) : (
-                <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={cancelJDEdit}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={saveJDChanges}
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save
-                  </Button>
-                </div>
-              )}
+        <div className="space-y-6">
+          {/* JD Metadata */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="text-center">
+              <div className="text-sm font-medium text-gray-900">Source</div>
+              <div className="text-xs text-gray-500 capitalize">{state.jobDescription.source}</div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {/* JD Metadata */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="text-sm font-medium text-gray-900">Version</div>
+              <div className="text-xs text-gray-500">{state.jobDescription.version}</div>
+            </div>
+            {state.jobDescription.confidence_score && (
               <div className="text-center">
-                <div className="text-sm font-medium text-gray-900">Source</div>
-                <div className="text-xs text-gray-500 capitalize">{state.jobDescription.source}</div>
-              </div>
-              <div className="text-center">
-                <div className="text-sm font-medium text-gray-900">Version</div>
-                <div className="text-xs text-gray-500">{state.jobDescription.version}</div>
-              </div>
-              {state.jobDescription.confidence_score && (
-                <div className="text-center">
-                  <div className="text-sm font-medium text-gray-900">Confidence</div>
-                  <div className="text-xs text-gray-500">
-                    {Math.round(state.jobDescription.confidence_score * 100)}%
-                  </div>
-                </div>
-              )}
-              {state.jobDescription.ai_provider && (
-                <div className="text-center">
-                  <div className="text-sm font-medium text-gray-900">AI Provider</div>
-                  <div className="text-xs text-gray-500 capitalize">{state.jobDescription.ai_provider}</div>
-                </div>
-              )}
-            </div>
-
-            {/* JD Content */}
-            <div className="flex-1 min-h-0">
-              {isEditingDescription ? (
-                <div className="h-full flex flex-col">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Job Description Content
-                  </label>
-                  <textarea
-                    value={editedJDContent}
-                    onChange={(e) => handleJDContentChange(e.target.value)}
-                    className="flex-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none font-mono text-sm"
-                    placeholder="Enter job description content..."
-                  />
-                  <div className="mt-2 text-xs text-gray-500">
-                    {editedJDContent.length} characters
-                  </div>
-                </div>
-              ) : (
-                <WysiwygEditor
-                  content={state.jobDescription.content}
-                  onSave={(content) => {
-                    setEditedJDContent(content);
-                    handleJDContentChange(content);
-                  }}
-                  title="Job Description Preview"
-                  readOnly={true}
-                  className="h-full"
-                  placeholder="Job description content..."
-                />
-              )}
-            </div>
-
-            {/* Enhancement Info */}
-            {state.enhancementResult && (
-              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-blue-900">
-                    {state.enhancementResult.analysis.clarity_score}/100
-                  </div>
-                  <div className="text-xs text-blue-700">Clarity Score</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-blue-900">
-                    {state.enhancementResult.analysis.bias_score}/100
-                  </div>
-                  <div className="text-xs text-blue-700">Bias Score</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-lg font-semibold text-blue-900">
-                    {state.enhancementResult.analysis.overall_quality_score}/100
-                  </div>
-                  <div className="text-xs text-blue-700">Overall Quality</div>
+                <div className="text-sm font-medium text-gray-900">Confidence</div>
+                <div className="text-xs text-gray-500">
+                  {Math.round(state.jobDescription.confidence_score * 100)}%
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+            {state.jobDescription.ai_provider && (
+              <div className="text-center">
+                <div className="text-sm font-medium text-gray-900">AI Provider</div>
+                <div className="text-xs text-gray-500 capitalize">{state.jobDescription.ai_provider}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Enhancement Info */}
+          {state.enhancementResult && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-center">
+                <div className="text-lg font-semibold text-blue-900">
+                  {state.enhancementResult.analysis.clarity_score}/100
+                </div>
+                <div className="text-xs text-blue-700">Clarity Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-semibold text-blue-900">
+                  {state.enhancementResult.analysis.bias_score}/100
+                </div>
+                <div className="text-xs text-blue-700">Bias Score</div>
+              </div>
+              <div className="text-center">
+                <div className="text-lg font-semibold text-blue-900">
+                  {state.enhancementResult.analysis.overall_quality_score}/100
+                </div>
+                <div className="text-xs text-blue-700">Overall Quality</div>
+              </div>
+            </div>
+          )}
+
+          {/* Document Content */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            {isEditingDescription ? (
+              <DocumentEditor
+                content={editorContent}
+                onChange={setEditorContent}
+                placeholder="Edit your job description..."
+                autoFocus={true}
+              />
+            ) : (
+              <DocumentViewer content={editorContent} />
+            )}
+          </div>
+        </div>
       ) : state.skipJobDescription ? (
         <Card>
           <CardContent className="py-8">
@@ -585,50 +557,8 @@ export function ReviewStep({
         </div>
       )}
 
-          </CardContent>
-        </Card>
       </div>
-
-      {/* Fixed Footer */}
-      <Card className="flex-shrink-0 mt-4">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                {hasUnsavedChanges ? (
-                  <>
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-amber-700">Unsaved Changes</span>
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">Review Complete</span>
-                  </>
-                )}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-3">
-              <Button
-                variant="outline"
-                onClick={onBack}
-                disabled={!canBack}
-                className="border-gray-300 hover:bg-gray-50 text-gray-700"
-              >
-                Back
-              </Button>
-              <Button
-                onClick={handleContinue}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm min-w-[180px]"
-              >
-                {state.jobDescription ? 'Generate Scorecard' : 'Finish Job Creation'}
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </DocumentReviewContainer>
   );
 }
 

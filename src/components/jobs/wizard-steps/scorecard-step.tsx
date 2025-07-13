@@ -14,7 +14,9 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Modal } from '@/components/ui/modal';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { WysiwygEditor } from '@/components/ui/wysiwyg-editor';
+import { DocumentReviewContainer } from '@/components/ui/document-review-container';
+import { DocumentEditor } from '@/components/ui/document-editor';
+import { DocumentViewer } from '@/components/ui/document-viewer';
 import { useGenerateScorecard, useApproveScorecard, useUpdateScorecard, useScorecard } from '@/hooks/jobs';
 
 import type { WizardStepProps } from '../job-creation-wizard';
@@ -36,6 +38,7 @@ export function ScorecardStep({
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [scorecardContent, setScorecardContent] = useState('');
+  const [isEditingScorecard, setIsEditingScorecard] = useState(false);
   const hasAttemptedGeneration = useRef(false);
 
   // Fetch detailed scorecard data when available
@@ -519,6 +522,146 @@ export function ScorecardStep({
   };
 
 
+  // Handle scorecard save
+  const handleSaveScorecardContent = (content: string) => {
+    setScorecardContent(content);
+    handleSaveContent(content);
+  };
+
+  const scorecardHasChanges = scorecardContent !== generateScorecardMarkdown(generateScorecardMutation.data);
+
+  // Check if we should show the document editor for the scorecard
+  const showScorecardEditor = state.scorecard && !isGenerating;
+
+  if (showScorecardEditor) {
+    return (
+      <DocumentReviewContainer
+        title="Evaluation Scorecard"
+        showProgress={true}
+        currentStep={4}
+        totalSteps={4}
+        stepTitle="Scorecard Generation"
+        hasChanges={scorecardHasChanges}
+        isReadOnly={!isEditingScorecard}
+        isGeneratedContent={true}
+        onSave={() => {
+          if (isEditingScorecard) {
+            handleSaveScorecardContent(scorecardContent);
+            setIsEditingScorecard(false);
+          } else {
+            if (onComplete) onComplete();
+          }
+        }}
+        onCancel={onBack}
+        onEdit={() => setIsEditingScorecard(!isEditingScorecard)}
+        metadata={{
+          wordCount: scorecardContent ? scorecardContent.split(/\s+/).filter(Boolean).length : 0,
+          characterCount: scorecardContent ? scorecardContent.length : 0,
+          lastModified: state.scorecard?.created_at ? new Date(state.scorecard.created_at).toLocaleDateString() : undefined,
+          version: 1
+        }}
+      >
+        <div className="space-y-6">
+          {/* Scorecard Overview Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600 mb-1">
+                {state.scorecard?.criteria_count || 0}
+              </div>
+              <div className="text-sm text-gray-600">Evaluation Criteria</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600 mb-1">
+                {state.scorecard?.total_weight || 0}
+              </div>
+              <div className="text-sm text-gray-600">Total Weight</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-purple-600 mb-1">
+                {state.scorecard?.is_active ? 'Active' : 'Draft'}
+              </div>
+              <div className="text-sm text-gray-600">Status</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                AI
+              </div>
+              <div className="text-sm text-gray-600">Generated</div>
+            </div>
+          </div>
+
+          {/* Success Message */}
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center">
+              <CheckCircle className="h-6 w-6 text-green-600 mr-3" />
+              <div>
+                <h3 className="text-lg font-medium text-green-900">Scorecard Generated Successfully!</h3>
+                <p className="text-green-700 mt-1">
+                  Your AI-powered evaluation scorecard is ready. Review and edit as needed.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Content */}
+          <div className="bg-white rounded-lg border border-gray-200">
+            {isEditingScorecard ? (
+              <DocumentEditor
+                content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                onChange={setScorecardContent}
+                placeholder="Edit your scorecard content..."
+                autoFocus={true}
+              />
+            ) : (
+              <DocumentViewer 
+                content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)} 
+              />
+            )}
+          </div>
+
+          {/* Scorecard Actions */}
+          {!isEditingScorecard && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  hasAttemptedGeneration.current = false;
+                  handleGenerate();
+                }}
+                className="flex items-center justify-center"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Regenerate
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleDownload('txt')}
+                className="flex items-center justify-center"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                onClick={handleApprove}
+                disabled={approveScorecardMutation.isPending}
+                className="bg-green-600 hover:bg-green-700 text-white flex items-center justify-center"
+              >
+                {approveScorecardMutation.isPending ? (
+                  <LoadingSpinner size="sm" />
+                ) : (
+                  <>
+                    <ThumbsUp className="h-4 w-4 mr-2" />
+                    Approve
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+        </div>
+      </DocumentReviewContainer>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col">
       {/* Fixed Header */}
@@ -941,17 +1084,21 @@ export function ScorecardStep({
                   </div>
                 )}
 
-                {/* WYSIWYG Editor */}
+                {/* Document Editor/Viewer */}
                 {!isLoadingScorecard && (
-                  <div className="bg-white rounded-lg shadow-sm h-96">
-                    <WysiwygEditor
-                      content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
-                      onSave={handleSaveContent}
-                      title={`${state.scorecard.name}`}
-                      readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved || false}
-                      className="h-full"
-                      placeholder="Scorecard content..."
-                    />
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                    {(detailedScorecard?.is_approved || state.scorecard.is_approved) ? (
+                      <DocumentViewer 
+                        content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                      />
+                    ) : (
+                      <DocumentEditor
+                        content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                        onChange={setScorecardContent}
+                        placeholder="Edit your scorecard content..."
+                        autoFocus={false}
+                      />
+                    )}
                   </div>
                 )}
               </div>

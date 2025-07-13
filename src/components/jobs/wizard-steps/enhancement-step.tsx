@@ -13,9 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Progress } from '@/components/ui/progress';
-import { DocumentReviewContainer } from '@/components/ui/document-review-container';
-import { DocumentEditor } from '@/components/ui/document-editor';
-import { DocumentViewer } from '@/components/ui/document-viewer';
+import { ModernDocumentContainer } from '@/components/ui/modern-document-container';
+import { ProfessionalJobEditor } from '@/components/ui/professional-job-editor';
 
 import { useEnhanceJobDescription } from '@/hooks/jobs';
 import { cn } from '@/lib/utils';
@@ -144,7 +143,7 @@ export function EnhancementStep({
   const hasChanges = editorContent !== (state.jobDescription?.content || '');
 
   return (
-    <DocumentReviewContainer
+    <ModernDocumentContainer
       title="AI Enhancement & Analysis"
       showProgress={true}
       currentStep={3}
@@ -169,7 +168,8 @@ export function EnhancementStep({
         wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
         characterCount: editorContent ? editorContent.length : 0,
         lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
-        version: state.jobDescription?.version
+        version: state.jobDescription?.version,
+        qualityScore: state.enhancementAnalysis?.overall_quality_score
       }}
     >
       <div className="space-y-8">
@@ -470,21 +470,26 @@ export function EnhancementStep({
 
           {/* Document Content */}
           <div className="bg-white rounded-lg border border-gray-200">
-            {isEditing ? (
-              <DocumentEditor
-                content={editorContent}
-                onChange={setEditorContent}
-                placeholder="Edit your job description..."
-                autoFocus={true}
-              />
-            ) : (
-              <DocumentViewer 
-                content={showOriginal && state.uploadResult 
-                  ? state.uploadResult.job_description.content
-                  : editorContent
-                } 
-              />
-            )}
+            <ProfessionalJobEditor
+              content={showOriginal && state.uploadResult 
+                ? state.uploadResult.job_description.content
+                : editorContent
+              }
+              onChange={setEditorContent}
+              onSave={() => {
+                handleSaveContent(editorContent);
+                setIsEditing(false);
+              }}
+              onCancel={() => setIsEditing(false)}
+              onEnhance={state.jobDescription && !hasEnhancement ? handleEnhance : undefined}
+              title="Job Description"
+              placeholder="Edit your job description..."
+              readOnly={!isEditing}
+              enhanceLoading={enhanceMutation.isPending}
+              isGeneratedContent={state.jobDescription?.source === 'generated'}
+              hasChanges={hasChanges}
+              autoFocus={isEditing}
+            />
           </div>
         </div>
       )}
@@ -523,7 +528,7 @@ export function EnhancementStep({
       )}
 
       </div>
-    </DocumentReviewContainer>
+    </ModernDocumentContainer>
   );
 }
 

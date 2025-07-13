@@ -12,9 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { DocumentReviewContainer } from '@/components/ui/document-review-container';
-import { DocumentEditor } from '@/components/ui/document-editor';
-import { DocumentViewer } from '@/components/ui/document-viewer';
+import { ModernDocumentContainer } from '@/components/ui/modern-document-container';
+import { ProfessionalJobEditor } from '@/components/ui/professional-job-editor';
 
 import { useUploadJobDescription, useGenerateJobDescription, useEnhanceJobDescription } from '@/hooks/jobs';
 import { formatFileSize, formatJobType, formatJobMode } from '@/lib/utils';
@@ -284,7 +283,7 @@ export function EnhancedJobDescriptionStep({
 
   if (showEditor) {
     return (
-      <DocumentReviewContainer
+      <ModernDocumentContainer
         title="Job Description"
         showProgress={true}
         currentStep={2}
@@ -309,19 +308,27 @@ export function EnhancedJobDescriptionStep({
           wordCount: editorContent ? editorContent.split(/\s+/).filter(Boolean).length : 0,
           characterCount: editorContent ? editorContent.length : 0,
           lastModified: state.jobDescription?.updated_at ? new Date(state.jobDescription.updated_at).toLocaleDateString() : undefined,
-          version: state.jobDescription?.version
+          version: state.jobDescription?.version,
+          qualityScore: state.enhancementResult?.analysis?.overall_quality_score
         }}
       >
-        {isEditing ? (
-          <DocumentEditor
-            content={editorContent}
-            onChange={setEditorContent}
-            placeholder="Write a comprehensive job description..."
-            autoFocus={true}
-          />
-        ) : (
-          <DocumentViewer content={editorContent} />
-        )}
+        <ProfessionalJobEditor
+          content={editorContent}
+          onChange={setEditorContent}
+          onSave={() => {
+            handleSaveContent(editorContent);
+            if (isEditing) setIsEditing(false);
+          }}
+          onCancel={() => setShowEditor(false)}
+          onEnhance={state.jobDescription ? handleEnhance : undefined}
+          title="Job Description"
+          placeholder="Write a comprehensive job description..."
+          readOnly={!isEditing}
+          enhanceLoading={enhanceMutation.isPending}
+          isGeneratedContent={state.jobDescription?.source === 'generated'}
+          hasChanges={editorContent !== (state.jobDescription?.content || '')}
+          autoFocus={isEditing}
+        />
         
         {/* Enhancement Results Banner */}
         {state.enhancementResult && (
@@ -352,7 +359,7 @@ export function EnhancedJobDescriptionStep({
             </div>
           </div>
         )}
-      </DocumentReviewContainer>
+      </ModernDocumentContainer>
     );
   }
 

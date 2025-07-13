@@ -14,9 +14,8 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Modal } from '@/components/ui/modal';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { DocumentReviewContainer } from '@/components/ui/document-review-container';
-import { DocumentEditor } from '@/components/ui/document-editor';
-import { DocumentViewer } from '@/components/ui/document-viewer';
+import { ModernDocumentContainer } from '@/components/ui/modern-document-container';
+import { ProfessionalJobEditor } from '@/components/ui/professional-job-editor';
 import { useGenerateScorecard, useApproveScorecard, useUpdateScorecard, useScorecard } from '@/hooks/jobs';
 
 import type { WizardStepProps } from '../job-creation-wizard';
@@ -535,7 +534,7 @@ export function ScorecardStep({
 
   if (showScorecardEditor) {
     return (
-      <DocumentReviewContainer
+      <ModernDocumentContainer
         title="Evaluation Scorecard"
         showProgress={true}
         currentStep={4}
@@ -543,7 +542,6 @@ export function ScorecardStep({
         stepTitle="Scorecard Generation"
         hasChanges={scorecardHasChanges}
         isReadOnly={!isEditingScorecard}
-        isGeneratedContent={true}
         onSave={() => {
           if (isEditingScorecard) {
             handleSaveScorecardContent(scorecardContent);
@@ -605,18 +603,13 @@ export function ScorecardStep({
 
           {/* Document Content */}
           <div className="bg-white rounded-lg border border-gray-200">
-            {isEditingScorecard ? (
-              <DocumentEditor
-                content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
-                onChange={setScorecardContent}
-                placeholder="Edit your scorecard content..."
-                autoFocus={true}
-              />
-            ) : (
-              <DocumentViewer 
-                content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)} 
-              />
-            )}
+            <ProfessionalJobEditor
+              content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+              onChange={setScorecardContent}
+              placeholder="Edit your scorecard content..."
+              readOnly={!isEditingScorecard}
+              autoFocus={isEditingScorecard}
+            />
           </div>
 
           {/* Scorecard Actions */}
@@ -658,7 +651,7 @@ export function ScorecardStep({
             </div>
           )}
         </div>
-      </DocumentReviewContainer>
+      </ModernDocumentContainer>
     );
   }
 
@@ -1087,18 +1080,13 @@ export function ScorecardStep({
                 {/* Document Editor/Viewer */}
                 {!isLoadingScorecard && (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    {(detailedScorecard?.is_approved || state.scorecard.is_approved) ? (
-                      <DocumentViewer 
-                        content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
-                      />
-                    ) : (
-                      <DocumentEditor
-                        content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
-                        onChange={setScorecardContent}
-                        placeholder="Edit your scorecard content..."
-                        autoFocus={false}
-                      />
-                    )}
+                    <ProfessionalJobEditor
+                      content={scorecardContent || generateScorecardMarkdown(generateScorecardMutation.data)}
+                      onChange={setScorecardContent}
+                      placeholder="Edit your scorecard content..."
+                      readOnly={detailedScorecard?.is_approved || state.scorecard.is_approved}
+                      autoFocus={false}
+                    />
                   </div>
                 )}
               </div>

@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
 import { JobDescriptionRenderer } from '@/components/ui/job-description-renderer';
-import { useJob, useDeleteJob, useJobDescriptions } from '@/hooks/jobs';
+import { useJob, useDeleteJob, useJobDescriptions, useJobStats } from '@/hooks/jobs';
 import { JobType, JobMode, SeniorityLevel, JobStatus } from '@/types/api';
 import { formatSalaryRange } from '@/lib/utils';
 
@@ -106,6 +106,7 @@ const getStatusVariant = (status: JobStatus | string): 'default' | 'success' | '
 export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDetailProps) {
   const { data: job, isLoading, isError, error } = useJob(jobId);
   const { data: jobDescriptions, isLoading: descriptionsLoading } = useJobDescriptions(jobId, false, !!jobId);
+  const { data: jobStats, isLoading: statsLoading } = useJobStats(jobId);
   const deleteJobMutation = useDeleteJob();
 
   // Get the current/latest job description
@@ -354,11 +355,15 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">0</div>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {statsLoading ? '...' : jobStats?.applications || 0}
+                  </div>
                   <div className="text-sm text-gray-600">Applications</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">0</div>
+                  <div className="text-2xl font-bold text-green-600">
+                    {statsLoading ? '...' : jobStats?.candidates || 0}
+                  </div>
                   <div className="text-sm text-gray-600">Candidates</div>
                 </div>
               </div>

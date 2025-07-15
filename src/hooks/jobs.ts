@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 
 import { jobsApi } from '@/lib/api/jobs';
+import { apiClient } from '@/lib/api/client';
 import {
   JobCreateRequest,
   JobResponse,
@@ -341,5 +342,69 @@ export function useApproveJob() {
       const message = error?.response?.data?.message || 'Failed to update job approval';
       toast.error(message);
     },
+  });
+}
+
+
+
+// Job Statistics Hook - get applications and candidates count for a job
+export function useJobStats(jobId: string) {
+  return useQuery({
+    queryKey: [...jobKeys.detail(jobId), 'stats'],
+    queryFn: async () => {
+      try {
+        // Fetch candidates filtered by job_id
+        const response = await apiClient.get('/candidates', {
+          params: {
+            job_id: jobId,
+            limit: 1000 // Get all candidates for this job
+          }
+        });
+
+        let candidates: any[] = [];
+        if (Array.isArray(response.data)) {
+          candidates = response.data;
+        } else if (response.data.items && Array.isArray(response.data.items)) {
+          candidates = response.data.items;
+        }
+
+        // Calculate statistics
+        const totalCandidates = candidates.length;
+        
+        // Applications count could be based on candidates or a separate concept
+        // For now, we'll assume each candidate represents an application
+        const applicationsCount = totalCandidates;
+        
+        // Active candidates (completed processing)
+        const activeCandidates = candidates.filter(c => 
+          c.processing_status === 'completed'
+        ).length;
+
+        return {
+          applications: applicationsCount,
+          candidates: totalCandidates,
+          activeCandidates,
+          processingCandidates: candidates.filter(c => 
+            c.processing_status === 'processing'
+          ).length,
+          failedCandidates: candidates.filter(c => 
+            c.processing_status === 'failed'
+          ).length,
+        };
+      } catch (error) {
+        console.error('Failed to fetch job statistics:', error);
+        // Return fallback data
+        return {
+          applications: 0,
+          candidates: 0,
+          activeCandidates: 0,
+          processingCandidates: 0,
+          failedCandidates: 0,
+        };
+      }
+    },
+    enabled: !!jobId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    retry: 1,
   });
 }

@@ -1,12 +1,14 @@
 /**
- * Candidate Detail Page
- * Individual candidate profile view with comprehensive information
+ * Enterprise Candidate Profile Page
+ * World-class candidate profile experience inspired by OpenAI, Salesforce, and Microsoft
+ * Features modern design, intuitive navigation, and comprehensive candidate insights
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, 
   Edit, 
@@ -18,7 +20,6 @@ import {
   CheckCircle,
   AlertCircle,
   Clock,
-  Loader2,
   Mail,
   Phone,
   MapPin,
@@ -28,156 +29,134 @@ import {
   Award,
   Target,
   FileText,
-  ExternalLink,
-  Linkedin,
-  Github,
   Star,
   RefreshCw,
-  Users
+  Users,
+  MessageSquare,
+  TrendingUp,
+  Zap,
+  Code,
+  Languages,
+  Trophy,
+  Sparkles,
+  Activity,
+  Bookmark,
+  Send,
+  X
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
 
 import { ProfileExtraction } from '@/components/candidates/profile-extraction';
 
 import { 
   useCandidate, 
   useCandidateProfile,
-  useDeleteCandidate,
-  formatProcessingStatus,
-  formatCandidateSource,
-  getStatusColor,
-  getSourceColor
+  useDeleteCandidate
 } from '@/hooks/candidates';
 import { cn } from '@/lib/utils';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
 
-import { 
-  ProcessingStatus
-} from '@/types/api';
+// Enhanced interfaces for the modern experience
+interface CandidateInsight {
+  type: 'strength' | 'concern' | 'opportunity' | 'note';
+  title: string;
+  description: string;
+  confidence?: number;
+  timestamp: string;
+}
 
-export default function CandidateDetailPage() {
+interface AssessmentData {
+  overallRating: number;
+  jobFitScore: number;
+  technicalSkills: number;
+  communication: number;
+  experience: number;
+  cultural: number;
+  strengths: string[];
+  concerns: string[];
+  interviewNotes: string;
+  nextSteps: string[];
+  insights: CandidateInsight[];
+}
+
+export default function CandidateProfilePage() {
   return (
     <AuthGuard requireAuth={true}>
-      <CandidateDetailContent />
+      <CandidateProfileContent />
     </AuthGuard>
   );
 }
 
-function CandidateDetailContent() {
+function CandidateProfileContent() {
   const params = useParams();
   const router = useRouter();
   const candidateId = params.id as string;
 
+  // State management for modern experience
+  const [activeTab, setActiveTab] = useState('overview');
   const [showExtraction, setShowExtraction] = useState(false);
-  const [recruiterNotes, setRecruiterNotes] = useState({
+  const [assessmentData, setAssessmentData] = useState<AssessmentData>({
     overallRating: 0,
     jobFitScore: 0,
-    strengths: '',
-    concerns: '',
-    interviewNotes: ''
+    technicalSkills: 0,
+    communication: 0,
+    experience: 0,
+    cultural: 0,
+    strengths: [],
+    concerns: [],
+    interviewNotes: '',
+    nextSteps: [],
+    insights: []
   });
 
+  // Data fetching
   const { data: candidate, isLoading, error, refetch } = useCandidate(candidateId);
   const { data: candidateProfile, isLoading: profileLoading } = useCandidateProfile(candidateId);
   const deleteCandidateMutation = useDeleteCandidate();
 
-  const handleSaveAssessment = () => {
-    // For now, we'll just show a success message and save to localStorage
-    // In a real application, this would save to the backend
-    localStorage.setItem(`recruiter-notes-${candidateId}`, JSON.stringify(recruiterNotes));
-    alert('Assessment saved successfully!');
-  };
+  // Enhanced candidate data with computed insights
+  const candidateInsights = useMemo(() => {
+    if (!candidate || !candidateProfile) return null;
 
-  const handleExportNotes = () => {
-    const exportData = {
-      candidate: `${candidate?.first_name} ${candidate?.last_name}`,
-      candidateId,
-      assessmentDate: new Date().toISOString(),
-      ...recruiterNotes
+    const profile = candidateProfile.profile_data || {};
+    const experience = profile.work_experience || [];
+    const education = profile.education || [];
+    const skills = profile.skills || {};
+
+    return {
+      experienceLevel: experience.length > 5 ? 'Senior' : experience.length > 2 ? 'Mid-level' : 'Junior',
+      totalExperience: experience.reduce((total: number, exp: any) => {
+        const start = new Date(exp.start_date || '2020-01-01');
+        const end = exp.is_current ? new Date() : new Date(exp.end_date || '2023-01-01');
+        return total + (end.getFullYear() - start.getFullYear());
+      }, 0),
+      keySkills: [
+        ...(skills.technical || []).map((skill: any) => typeof skill === 'string' ? skill : skill.name || skill),
+        ...(skills.soft || []).map((skill: any) => typeof skill === 'string' ? skill : skill.name || skill),
+        ...(skills.languages || []).map((lang: any) => typeof lang === 'string' ? lang : lang.language || lang.name || lang)
+      ].filter(Boolean).slice(0, 6),
+      education: education[0]?.degree || 'Not specified',
+      strengths: profile.strengths || [],
+      lastActive: candidate.updated_at,
+      completeness: calculateProfileCompleteness(profile)
     };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `assessment-${candidate?.first_name}-${candidate?.last_name}-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  }, [candidate, candidateProfile]);
 
-  // Load saved notes from localStorage
-  useEffect(() => {
-    const savedNotes = localStorage.getItem(`recruiter-notes-${candidateId}`);
-    if (savedNotes) {
-      try {
-        const parsedNotes = JSON.parse(savedNotes);
-        setRecruiterNotes(parsedNotes);
-      } catch (error) {
-        console.error('Error parsing saved notes:', error);
-      }
-    }
-  }, [candidateId]);
-
-  const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this candidate? This action cannot be undone.')) {
-      try {
-        await deleteCandidateMutation.mutateAsync(candidateId);
-        router.push('/dashboard/candidates');
-      } catch (error) {
-        console.error('Delete failed:', error);
-      }
-    }
-  };
-
-  const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
-  };
-
-  const getStatusIcon = (status: ProcessingStatus) => {
-    switch (status) {
-      case ProcessingStatus.PENDING:
-        return <Clock className="h-4 w-4" />;
-      case ProcessingStatus.PROCESSING:
-        return <Loader2 className="h-4 w-4 animate-spin" />;
-      case ProcessingStatus.COMPLETED:
-        return <CheckCircle className="h-4 w-4" />;
-      case ProcessingStatus.FAILED:
-        return <AlertCircle className="h-4 w-4" />;
-    }
-  };
-
-  const formatDateRange = (startDate?: string, endDate?: string, isCurrent?: boolean) => {
-    if (!startDate) return '';
-    const start = new Date(startDate).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short' 
-    });
-    if (isCurrent) return `${start} - Present`;
-    if (!endDate) return start;
-    const end = new Date(endDate).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short' 
-    });
-    return `${start} - ${end}`;
-  };
-
-  const breadcrumbs = [
-    { label: 'Dashboard', href: '/dashboard' },
-    { label: 'Candidates', href: '/dashboard/candidates' },
-    { label: candidate ? `${candidate.first_name} ${candidate.last_name}` : 'Loading...', href: `/dashboard/candidates/${candidateId}`, current: true }
-  ];
-
+  // Loading states with modern skeleton
   if (isLoading || profileLoading) {
     return (
-      <DashboardLayout title="Loading..." breadcrumbs={breadcrumbs}>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <LoadingSpinner size="lg" />
+      <DashboardLayout title="Candidate Profile" className="max-w-none">
+        <div className="space-y-6">
+          <EnhancedLoadingSkeleton />
         </div>
       </DashboardLayout>
     );
@@ -185,798 +164,1078 @@ function CandidateDetailContent() {
 
   if (error || !candidate) {
     return (
-      <DashboardLayout title="Not Found" breadcrumbs={breadcrumbs}>
-        <Card variant="alert" className="border-red-200">
-          <CardContent className="p-12 text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-red-900 mb-2">Candidate not found</h3>
-            <p className="text-red-700 mb-4">
-              The candidate you're looking for doesn't exist or has been deleted.
-            </p>
-            <Button onClick={() => router.push('/dashboard/candidates')}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Candidates
-            </Button>
-          </CardContent>
-        </Card>
+      <DashboardLayout title="Candidate Not Found" className="max-w-none">
+        <EnhancedErrorState 
+          onRetry={() => refetch()} 
+          onBack={() => router.push('/dashboard/candidates')} 
+        />
       </DashboardLayout>
     );
-  }
-
-  if (showExtraction) {
-    return (
-      <DashboardLayout title="AI Profile Extraction" breadcrumbs={breadcrumbs}>
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowExtraction(false)}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Profile
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">AI Profile Extraction</h1>
-              <p className="text-gray-600">
-                Processing profile for {candidate.first_name} {candidate.last_name}
-              </p>
-            </div>
-          </div>
-          
-          <ProfileExtraction
-            candidate={candidate}
-            onExtractionComplete={(_updatedCandidate) => {
-              setShowExtraction(false);
-              refetch();
-            }}
-            autoStart={true}
-          />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-
-  // Use profile data from the dedicated profile endpoint if available, otherwise fall back to candidate.profile_data
-  const profileData = candidateProfile?.profile_data || candidate.profile_data;
-  const personalInfo = profileData?.personal_info;
-  const workExperience = profileData?.work_experience || [];
-  const education = profileData?.education || [];
-  const skills = profileData?.skills;
-  const certifications = profileData?.certifications || [];
-  const projects = profileData?.projects || [];
-  
-  // Debug profile data in development
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('🔍 Profile data debug:', {
-      candidateProfile,
-      candidateProfileData: candidate.profile_data,
-      finalProfileData: profileData,
-      personalInfo,
-      workExperience,
-      education,
-      skills,
-      certifications,
-      projects
-    });
   }
 
   return (
-    <DashboardLayout title={`${candidate.first_name} ${candidate.last_name}`} breadcrumbs={breadcrumbs}>
+    <DashboardLayout 
+      title={`${candidate.first_name} ${candidate.last_name}`}
+      breadcrumbs={[
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Candidates', href: '/dashboard/candidates' },
+        { label: `${candidate.first_name} ${candidate.last_name}`, href: '#' }
+      ]}
+      className="max-w-none"
+    >
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/dashboard/candidates')}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {candidate.first_name} {candidate.last_name}
-              </h1>
-              <p className="text-gray-600">Candidate Profile</p>
-            </div>
-          </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refetch()}
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Refresh
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowExtraction(true)}
-            disabled={candidate.processing_status === ProcessingStatus.PROCESSING}
-          >
-            <Brain className="h-4 w-4 mr-2" />
-            AI Re-extract
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => window.open(`/api/candidates/${candidate.id}/cv`, '_blank')}
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Download CV
-          </Button>
-        </div>
-      </div>
+        {/* Hero Header - OpenAI/Salesforce inspired */}
+        <CandidateHeroSection 
+          candidate={candidate}
+          candidateProfile={candidateProfile}
+          insights={candidateInsights}
+          onBack={() => router.push('/dashboard/candidates')}
+        />
 
-      {/* Profile Header */}
-      <Card variant="feature" className="border-0 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex items-start gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xl">
-                  {getInitials(candidate.first_name, candidate.last_name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {candidate.first_name} {candidate.last_name}
-                </h2>
-                
-                {workExperience.find((exp: any) => exp.is_current || (!exp.end_date && exp.start_date)) && (
-                  <p className="text-lg text-gray-700 mb-2 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    {(workExperience.find((exp: any) => exp.is_current || (!exp.end_date && exp.start_date))?.position || 
-                      workExperience.find((exp: any) => exp.is_current || (!exp.end_date && exp.start_date))?.title)} at{' '}
-                    {workExperience.find((exp: any) => exp.is_current || (!exp.end_date && exp.start_date))?.company}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-4 text-sm text-gray-600">
-                  {personalInfo?.location && (
-                    <span className="flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {personalInfo.location}
-                    </span>
-                  )}
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    Added {new Date(candidate.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            </div>
+        {/* Main Content Area */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Primary Content - 2/3 width */}
+          <div className="lg:col-span-2 space-y-6">
+            <CandidateDetailTabs
+              candidate={candidate}
+              candidateProfile={candidateProfile}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              assessmentData={assessmentData}
+              onAssessmentUpdate={setAssessmentData}
+            />
+          </div>
+
+          {/* Sidebar - 1/3 width */}
+          <div className="space-y-6">
+            <CandidateInsightsPanel 
+              candidate={candidate}
+              insights={candidateInsights}
+              assessmentData={assessmentData}
+            />
             
-            <div className="flex flex-col items-end gap-3">
-              <div className="flex items-center gap-2">
-                <Badge className={cn('text-xs', getStatusColor(candidate.processing_status))}>
-                  {getStatusIcon(candidate.processing_status)}
-                  <span className="ml-1">{formatProcessingStatus(candidate.processing_status)}</span>
-                </Badge>
-                <Badge className={cn('text-xs', getSourceColor(candidate.source))}>
-                  {formatCandidateSource(candidate.source)}
-                </Badge>
-              </div>
-              
-              {candidate.confidence_score && (
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Target className="h-4 w-4" />
-                  <span>Confidence: {Math.round(candidate.confidence_score * 100)}%</span>
-                  <div className="w-20 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-300"
-                      style={{ width: `${candidate.confidence_score * 100}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
+            <CandidateActionsPanel 
+              candidate={candidate}
+              onExtract={() => setShowExtraction(true)}
+              onDelete={() => deleteCandidateMutation.mutate(candidateId)}
+            />
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Data Source Indicator */}
-      <Card variant="glass" className="border-blue-200 bg-blue-50/50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">CV-Extracted Profile Data</span>
-            </div>
-            <div className="h-4 w-px bg-blue-200" />
-            <span className="text-xs text-blue-700">
-              This information was automatically extracted from the candidate's CV and is read-only to maintain data integrity.
-            </span>
-            <div className="ml-auto">
-              <Badge variant="outline" className="text-xs border-blue-200 text-blue-700">
-                <Brain className="h-3 w-3 mr-1" />
-                AI Extracted
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column - Contact & Basic Info */}
-        <div className="space-y-6">
-          {/* Contact Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {(personalInfo?.email || candidate.email) && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <a href={`mailto:${personalInfo?.email || candidate.email}`} className="text-blue-600 hover:text-blue-800">
-                    {personalInfo?.email || candidate.email}
-                  </a>
-                </div>
-              )}
-              {(personalInfo?.phone || candidate.phone) && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <a href={`tel:${personalInfo?.phone || candidate.phone}`} className="text-blue-600 hover:text-blue-800">
-                    {personalInfo?.phone || candidate.phone}
-                  </a>
-                </div>
-              )}
-              {(personalInfo?.location || candidate.location) && (
-                <div className="flex items-center gap-3">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  <span>{personalInfo?.location || candidate.location}</span>
-                </div>
-              )}
-              {personalInfo?.linkedin && (
-                <div className="flex items-center gap-3">
-                  <Linkedin className="h-4 w-4 text-gray-400" />
-                  <a href={personalInfo.linkedin} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                    LinkedIn Profile
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              )}
-              {personalInfo?.github && (
-                <div className="flex items-center gap-3">
-                  <Github className="h-4 w-4 text-gray-400" />
-                  <a href={personalInfo.github} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                    GitHub Profile
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Skills */}
-          {skills && (skills.technical?.length || skills.soft?.length || skills.languages?.length) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  Skills & Competencies
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {skills.technical && skills.technical.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Technical Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.technical.map((skill: any, index: number) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {typeof skill === 'string' ? skill : skill.name}
-                          {skill.level && ` (${skill.level})`}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {skills.soft && skills.soft.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Soft Skills</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.soft.map((skill: any, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {typeof skill === 'string' ? skill : skill.name}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {skills.languages && skills.languages.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Languages</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.languages.map((lang: any, index: number) => (
-                        <Badge key={index} variant="ghost" className="text-xs">
-                          {typeof lang === 'string' ? lang : lang.language}
-                          {lang.proficiency && ` (${lang.proficiency})`}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {skills.tools && skills.tools.length > 0 && (
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Tools & Technologies</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {skills.tools.map((tool: any, index: number) => (
-                        <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                          {typeof tool === 'string' ? tool : tool.name}
-                          {tool.level && ` (${tool.level})`}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Certifications */}
-          {certifications.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Award className="h-5 w-5 text-primary" />
-                  Certifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {certifications.map((cert: any, index: number) => (
-                    <div key={index} className="border-l-2 border-primary pl-4">
-                      <h4 className="font-medium text-gray-900">{cert.name}</h4>
-                      <p className="text-sm text-gray-600">{cert.issuer || cert.issuing_organization}</p>
-                      {cert.date && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Issued: {new Date(cert.date).toLocaleDateString()}
-                          {cert.expiry && (
-                            <span> • Expires: {new Date(cert.expiry).toLocaleDateString()}</span>
-                          )}
-                        </p>
-                      )}
-                      {cert.credential_url && (
-                        <a
-                          href={cert.credential_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
-                        >
-                          View Credential
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Projects */}
-          {projects.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  Key Projects
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {projects.map((project: any, index: number) => (
-                    <div key={index} className="border-l-2 border-primary pl-4">
-                      <h4 className="font-medium text-gray-900">{project.name}</h4>
-                      <p className="text-sm text-primary font-medium">{project.role}</p>
-                      {project.description && (
-                        <p className="text-sm text-gray-700 mt-1">{project.description}</p>
-                      )}
-                      {project.technologies && project.technologies.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {project.technologies.map((tech: string, techIndex: number) => (
-                            <Badge key={techIndex} variant="outline" className="text-xs">
-                              {tech}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      {project.url && (
-                        <a
-                          href={project.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
-                        >
-                          View Project
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
-        {/* Right Column - Experience & Education */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Summary */}
-          {profileData?.summary ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Professional Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 leading-relaxed">{profileData.summary}</p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Professional Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-gray-500">
-                  <Brain className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p className="mb-2">No professional summary available</p>
-                  <p className="text-sm">
-                    Profile data will be available after CV processing is complete
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setShowExtraction(true)}
-                    className="mt-3"
-                  >
-                    <Brain className="h-4 w-4 mr-2" />
-                    Extract Profile Data
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Modals */}
+        <AnimatePresence>
+          {showExtraction && (
+            <ProfileExtractionModal
+              candidate={candidate}
+              onClose={() => setShowExtraction(false)}
+            />
           )}
-
-          {/* Work Experience */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Briefcase className="h-5 w-5 text-primary" />
-                Work Experience
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {workExperience.length > 0 ? (
-                <div className="space-y-6">
-                  {workExperience.map((exp: any, index: number) => (
-                    <div key={index} className="relative">
-                      {index > 0 && <div className="absolute left-4 -top-3 w-0.5 h-3 bg-gray-200" />}
-                      <div className="flex items-start gap-4">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <Briefcase className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{exp.position || exp.title}</h4>
-                              <p className="text-primary font-medium">{exp.company}</p>
-                              {exp.location && (
-                                <p className="text-sm text-gray-600 flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {exp.location}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {formatDateRange(exp.start_date, exp.end_date, !exp.end_date)}
-                            </div>
-                          </div>
-                          {exp.description && (
-                            <p className="text-gray-700 mt-2">{exp.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Briefcase className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p className="mb-2">No work experience available</p>
-                  <p className="text-sm">
-                    Work experience will be extracted from the CV automatically
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Education */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GraduationCap className="h-5 w-5 text-primary" />
-                Education
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {education.length > 0 ? (
-                <div className="space-y-6">
-                  {education.map((edu: any, index: number) => (
-                    <div key={index} className="relative">
-                      {index > 0 && <div className="absolute left-4 -top-3 w-0.5 h-3 bg-gray-200" />}
-                      <div className="flex items-start gap-4">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                          <GraduationCap className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h4 className="font-semibold text-gray-900">{edu.degree}</h4>
-                              {edu.field_of_study && (
-                                <p className="text-primary font-medium">{edu.field_of_study}</p>
-                              )}
-                              <p className="text-gray-600">{edu.institution}</p>
-                              {edu.location && (
-                                <p className="text-sm text-gray-600 flex items-center gap-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {edu.location}
-                                </p>
-                              )}
-                            </div>
-                            <div className="text-sm text-gray-500 flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {formatDateRange(edu.start_date, edu.graduation_date || edu.end_date)}
-                            </div>
-                          </div>
-                          {edu.gpa && (
-                            <p className="text-sm text-gray-600 mt-1">GPA: {edu.gpa}</p>
-                          )}
-                          {edu.description && (
-                            <p className="text-gray-700 mt-2">{edu.description}</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <GraduationCap className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                  <p className="mb-2">No education information available</p>
-                  <p className="text-sm">
-                    Education details will be extracted from the CV automatically
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Achievements */}
-          {profileData?.achievements && profileData.achievements.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Star className="h-5 w-5 text-primary" />
-                  Key Achievements
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {profileData.achievements.map((achievement: string, index: number) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                      <span className="text-gray-700">{achievement}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Recruiter Assessment Section */}
-      <Card variant="elevated" className="border-amber-200 bg-amber-50/30">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Edit className="h-5 w-5 text-amber-600" />
-            Recruiter Assessment & Notes
-            <Badge variant="outline" className="ml-2 text-xs border-amber-200 text-amber-700">
-              Editable
-            </Badge>
-          </CardTitle>
-          <p className="text-sm text-amber-700">
-            Add your evaluation notes, interview feedback, and assessment comments. This section is separate from the CV-extracted data.
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Overall Assessment */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Star className="h-4 w-4 text-amber-500" />
-                  Overall Rating
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onClick={() => setRecruiterNotes(prev => ({ ...prev, overallRating: star }))}
-                      className={`transition-colors ${
-                        star <= recruiterNotes.overallRating
-                          ? 'text-amber-400' 
-                          : 'text-gray-300 hover:text-amber-400'
-                      }`}
-                    >
-                      <Star className="h-5 w-5 fill-current" />
-                    </button>
-                  ))}
-                  <span className="text-sm text-gray-600 ml-2">
-                    {recruiterNotes.overallRating > 0 ? `${recruiterNotes.overallRating}/5` : 'Click to rate'}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Target className="h-4 w-4 text-blue-500" />
-                  Job Fit Score
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2 cursor-pointer"
-                       onClick={(e) => {
-                         const rect = e.currentTarget.getBoundingClientRect();
-                         const x = e.clientX - rect.left;
-                         const percentage = Math.round((x / rect.width) * 100);
-                         setRecruiterNotes(prev => ({ ...prev, jobFitScore: Math.max(0, Math.min(100, percentage)) }));
-                       }}>
-                    <div className="bg-blue-500 h-2 rounded-full transition-all duration-200" 
-                         style={{ width: `${recruiterNotes.jobFitScore}%` }}></div>
-                  </div>
-                  <span className="text-sm text-gray-600">{recruiterNotes.jobFitScore}%</span>
-                </div>
-                <p className="text-xs text-gray-500 mt-1">Click to adjust fit score</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Notes Sections */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-green-500" />
-                  Strengths & Highlights
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  value={recruiterNotes.strengths}
-                  onChange={(e) => setRecruiterNotes(prev => ({ ...prev, strengths: e.target.value }))}
-                  className="w-full h-24 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Note key strengths, impressive achievements, and positive highlights..."
-                />
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
-                  Concerns & Areas for Improvement
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <textarea
-                  value={recruiterNotes.concerns}
-                  onChange={(e) => setRecruiterNotes(prev => ({ ...prev, concerns: e.target.value }))}
-                  className="w-full h-24 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  placeholder="Note any concerns, skill gaps, or areas that need clarification..."
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Interview Notes */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple-500" />
-                Interview Notes & Feedback
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <textarea
-                value={recruiterNotes.interviewNotes}
-                onChange={(e) => setRecruiterNotes(prev => ({ ...prev, interviewNotes: e.target.value }))}
-                className="w-full h-32 p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="Record interview observations, responses to questions, cultural fit assessment, and next steps..."
-              />
-            </CardContent>
-          </Card>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-amber-200">
-            <div className="text-sm text-gray-600">
-              Assessment notes are private and visible only to your recruiting team.
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleExportNotes}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Notes
-              </Button>
-              <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={handleSaveAssessment}>
-                <Download className="h-4 w-4 mr-2" />
-                Save Assessment
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Actions */}
-      <Card variant="glass" className="backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
-                Last updated: {new Date(candidate.updated_at).toLocaleString()}
-              </div>
-              {candidate.ai_provider && (
-                <Badge variant="outline" className="text-xs">
-                  <Brain className="h-3 w-3 mr-1" />
-                  {candidate.ai_provider}
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                onClick={() => window.open(`/dashboard/candidates/${candidate.id}/share`, '_blank')}
-              >
-                <Share2 className="h-4 w-4 mr-2" />
-                Share Profile
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleDelete}
-                className="text-red-600 hover:text-red-700"
-                disabled={deleteCandidateMutation.isPending}
-              >
-                {deleteCandidateMutation.isPending ? (
-                  <LoadingSpinner size="sm" className="mr-2" />
-                ) : (
-                  <Archive className="h-4 w-4 mr-2" />
-                )}
-                Delete Candidate
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        </AnimatePresence>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Helper function to calculate profile completeness
+function calculateProfileCompleteness(profile: any): number {
+  const fields = [
+    profile.personal_info?.email,
+    profile.personal_info?.phone,
+    profile.personal_info?.location,
+    profile.work_experience?.length > 0,
+    profile.education?.length > 0,
+    profile.skills?.technical?.length > 0,
+    profile.summary
+  ];
+  
+  const completed = fields.filter(Boolean).length;
+  return Math.round((completed / fields.length) * 100);
+}
+
+// Modern Hero Section Component - Salesforce/OpenAI inspired
+function CandidateHeroSection({ 
+  candidate, 
+  candidateProfile, 
+  insights, 
+  onEdit, 
+  onBack 
+}: {
+  candidate: any;
+  candidateProfile: any;
+  insights: any;
+  onEdit?: () => void;
+  onBack: () => void;
+}) {
+  const profile = candidateProfile?.profile_data || {};
+  
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-white via-gray-50/50 to-blue-50/30 border border-gray-200/60 shadow-lg"
+    >
+      {/* Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-600" />
+      </div>
+
+      <div className="relative p-8">
+        {/* Navigation */}
+        <div className="flex items-center gap-4 mb-6">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onBack}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Candidates
+          </Button>
+          <div className="h-4 w-px bg-gray-300" />
+          <Badge variant="outline" className="text-xs">
+            {insights?.experienceLevel} Level
+          </Badge>
+        </div>
+
+        <div className="flex items-start justify-between">
+          {/* Profile Info */}
+          <div className="flex items-start gap-6">
+            {/* Avatar */}
+            <div className="relative">
+              <Avatar className="h-20 w-20 ring-4 ring-white shadow-lg">
+                <AvatarFallback className="text-2xl font-semibold bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                  {candidate.first_name?.[0]}{candidate.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              
+              {/* Status Indicator */}
+              <div className="absolute -bottom-1 -right-1">
+                <div className={cn(
+                  "h-6 w-6 rounded-full border-2 border-white shadow-sm flex items-center justify-center",
+                  candidate.processing_status === 'completed' ? 'bg-green-500' :
+                  candidate.processing_status === 'processing' ? 'bg-yellow-500' :
+                  candidate.processing_status === 'failed' ? 'bg-red-500' : 'bg-gray-400'
+                )}>
+                  {candidate.processing_status === 'completed' && <CheckCircle className="h-3 w-3 text-white" />}
+                  {candidate.processing_status === 'processing' && <Clock className="h-3 w-3 text-white" />}
+                  {candidate.processing_status === 'failed' && <AlertCircle className="h-3 w-3 text-white" />}
+                </div>
+              </div>
+            </div>
+
+            {/* Details */}
+            <div className="space-y-3">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {candidate.first_name} {candidate.last_name}
+                </h1>
+                
+                <div className="flex items-center gap-4 text-gray-600">
+                  {profile.personal_info?.email && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4" />
+                      <span className="text-sm">{profile.personal_info.email}</span>
+                    </div>
+                  )}
+                  {profile.personal_info?.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      <span className="text-sm">{profile.personal_info.phone}</span>
+                    </div>
+                  )}
+                  {profile.personal_info?.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span className="text-sm">{profile.personal_info.location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Key Metrics */}
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {insights?.totalExperience}+ years experience
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Target className="h-4 w-4 text-green-600" />
+                  <span className="text-sm font-medium text-gray-900">
+                    {insights?.completeness}% complete profile
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-purple-600" />
+                  <span className="text-sm font-medium text-gray-900">
+                    Updated {new Date(candidate.updated_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Skills Preview */}
+              {insights?.keySkills && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {insights.keySkills.map((skill: string, index: number) => (
+                    <Badge 
+                      key={index} 
+                      variant="secondary"
+                      className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                    >
+                      {skill}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm">
+              <Share2 className="h-4 w-4 mr-2" />
+              Share
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+            {onEdit && (
+              <Button onClick={onEdit} className="bg-blue-600 hover:bg-blue-700">
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Enhanced Tabs Component - Microsoft/OpenAI inspired
+function CandidateDetailTabs({ 
+  candidate, 
+  candidateProfile, 
+  activeTab, 
+  onTabChange, 
+  assessmentData, 
+  onAssessmentUpdate 
+}: {
+  candidate: any;
+  candidateProfile: any;
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  assessmentData: AssessmentData;
+  onAssessmentUpdate: (data: AssessmentData) => void;
+}) {
+  const profile = candidateProfile?.profile_data || {};
+
+  return (
+    <Card className="border-0 shadow-lg">
+      <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
+        <CardHeader className="pb-0">
+          <TabsList className="grid w-full grid-cols-5 bg-gray-50 p-1 h-12">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="experience" className="flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              <span className="hidden sm:inline">Experience</span>
+            </TabsTrigger>
+            <TabsTrigger value="skills" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Skills</span>
+            </TabsTrigger>
+            <TabsTrigger value="assessment" className="flex items-center gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">Assessment</span>
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Documents</span>
+            </TabsTrigger>
+          </TabsList>
+        </CardHeader>
+
+        <CardContent className="p-6 pt-4">
+          <TabsContent value="overview" className="mt-0">
+            <CandidateOverviewTab profile={profile} candidate={candidate} />
+          </TabsContent>
+          
+          <TabsContent value="experience" className="mt-0">
+            <CandidateExperienceTab profile={profile} />
+          </TabsContent>
+          
+          <TabsContent value="skills" className="mt-0">
+            <CandidateSkillsTab profile={profile} />
+          </TabsContent>
+          
+          <TabsContent value="assessment" className="mt-0">
+            <CandidateAssessmentTab 
+              candidate={candidate}
+              assessmentData={assessmentData}
+              onUpdate={onAssessmentUpdate}
+            />
+          </TabsContent>
+          
+          <TabsContent value="documents" className="mt-0">
+            <CandidateDocumentsTab candidate={candidate} />
+          </TabsContent>
+        </CardContent>
+      </Tabs>
+    </Card>
+  );
+}
+
+// Overview Tab Component
+function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any; candidate: any }) {
+  return (
+    <div className="space-y-6">
+      {/* Summary Section */}
+      {profile.summary && (
+        <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+          <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-600" />
+            Professional Summary
+          </h3>
+          <p className="text-gray-700 leading-relaxed">{profile.summary}</p>
+        </div>
+      )}
+
+      {/* Quick Info Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Personal Info */}
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Personal Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {profile.personal_info?.email && (
+              <div className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-900">{profile.personal_info.email}</span>
+              </div>
+            )}
+            {profile.personal_info?.phone && (
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-900">{profile.personal_info.phone}</span>
+              </div>
+            )}
+            {profile.personal_info?.location && (
+              <div className="flex items-center gap-3">
+                <MapPin className="h-4 w-4 text-gray-400" />
+                <span className="text-sm text-gray-900">{profile.personal_info.location}</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Latest Education */}
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+              <GraduationCap className="h-4 w-4" />
+              Latest Education
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profile.education?.[0] ? (
+              <div className="space-y-2">
+                <p className="font-medium text-gray-900">{profile.education[0].degree}</p>
+                <p className="text-sm text-gray-600">{profile.education[0].institution}</p>
+                <p className="text-xs text-gray-500">{profile.education[0].end_date}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No education information</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Current Role */}
+        <Card className="border border-gray-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
+              <Briefcase className="h-4 w-4" />
+              Current Role
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profile.work_experience?.find((exp: any) => exp.is_current) ? (
+              <div className="space-y-2">
+                <p className="font-medium text-gray-900">
+                  {profile.work_experience.find((exp: any) => exp.is_current).title}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {profile.work_experience.find((exp: any) => exp.is_current).company}
+                </p>
+                <p className="text-xs text-gray-500">Current Position</p>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">No current role specified</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Key Achievements */}
+      {profile.achievements && profile.achievements.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-600" />
+              Key Achievements
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {profile.achievements.map((achievement: string, index: number) => (
+                <li key={index} className="flex items-start gap-3">
+                  <Star className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                  <span className="text-gray-700">{achievement}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Experience Tab Component
+function CandidateExperienceTab({ profile }: { profile: any }) {
+  const workExperience = profile.work_experience || [];
+
+  return (
+    <div className="space-y-6">
+      {workExperience.length > 0 ? (
+        workExperience.map((experience: any, index: number) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+          >
+            <Card className="border border-gray-200 hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      {experience.title}
+                    </h3>
+                    <p className="text-blue-600 font-medium mb-2">{experience.company}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        <span>
+                          {experience.start_date} - {experience.is_current ? 'Present' : experience.end_date}
+                        </span>
+                      </div>
+                      {experience.location && (
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          <span>{experience.location}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {experience.is_current && (
+                    <Badge className="bg-green-100 text-green-800 border-green-200">
+                      Current
+                    </Badge>
+                  )}
+                </div>
+                
+                {experience.description && (
+                  <div className="prose prose-sm max-w-none">
+                    <p className="text-gray-700 leading-relaxed">{experience.description}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))
+      ) : (
+        <Card className="border border-gray-200">
+          <CardContent className="p-12 text-center">
+            <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No work experience information available</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Skills Tab Component
+function CandidateSkillsTab({ profile }: { profile: any }) {
+  const skills = profile.skills || {};
+
+  return (
+    <div className="space-y-6">
+      {/* Technical Skills */}
+      {skills.technical && skills.technical.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Code className="h-5 w-5 text-blue-600" />
+              Technical Skills
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {skills.technical.map((skill: any, index: number) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary"
+                  className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200"
+                >
+                  {typeof skill === 'string' ? skill : skill.name || skill}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Soft Skills */}
+      {skills.soft && skills.soft.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-green-600" />
+              Soft Skills
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {skills.soft.map((skill: any, index: number) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary"
+                  className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200"
+                >
+                  {typeof skill === 'string' ? skill : skill.name || skill}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Languages */}
+      {skills.languages && skills.languages.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5 text-purple-600" />
+              Languages
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {skills.languages.map((language: any, index: number) => (
+                <Badge 
+                  key={index} 
+                  variant="secondary"
+                  className="bg-purple-50 text-purple-700 hover:bg-purple-100 border-purple-200"
+                >
+                  {typeof language === 'string' ? language : language.language || language.name || language}
+                  {typeof language === 'object' && language.proficiency && (
+                    <span className="ml-1 text-xs opacity-75">({language.proficiency})</span>
+                  )}
+                </Badge>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Certifications */}
+      {profile.certifications && profile.certifications.length > 0 && (
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-5 w-5 text-yellow-600" />
+              Certifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {profile.certifications.map((cert: any, index: number) => (
+                <div key={index} className="border-b border-gray-100 last:border-0 pb-4 last:pb-0">
+                  <h4 className="font-medium text-gray-900">{cert.name}</h4>
+                  <p className="text-sm text-gray-600">{cert.issuing_organization}</p>
+                  {cert.issue_date && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Issued: {cert.issue_date}
+                      {cert.expiration_date && ` • Expires: ${cert.expiration_date}`}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Empty State */}
+      {(!skills.technical?.length && !skills.soft?.length && !skills.languages?.length && !profile.certifications?.length) && (
+        <Card className="border border-gray-200">
+          <CardContent className="p-12 text-center">
+            <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No skills information available</p>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// Assessment Tab Component
+function CandidateAssessmentTab({ 
+  candidate: _candidate, 
+  assessmentData, 
+  onUpdate 
+}: { 
+  candidate: any; 
+  assessmentData: AssessmentData; 
+  onUpdate: (data: AssessmentData) => void; 
+}) {
+  const [newNote, setNewNote] = useState('');
+
+  const updateRating = (field: keyof AssessmentData, value: number) => {
+    onUpdate({ ...assessmentData, [field]: value });
+  };
+
+  const addNote = () => {
+    if (!newNote.trim()) return;
+    
+    const insight: CandidateInsight = {
+      type: 'note',
+      title: 'Recruiter Note',
+      description: newNote,
+      timestamp: new Date().toISOString()
+    };
+    
+    onUpdate({
+      ...assessmentData,
+      insights: [...assessmentData.insights, insight]
+    });
+    setNewNote('');
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Rating Sections */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-lg">Skill Assessment</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RatingInput
+              label="Technical Skills"
+              value={assessmentData.technicalSkills}
+              onChange={(value) => updateRating('technicalSkills', value)}
+            />
+            <RatingInput
+              label="Communication"
+              value={assessmentData.communication}
+              onChange={(value) => updateRating('communication', value)}
+            />
+            <RatingInput
+              label="Experience Level"
+              value={assessmentData.experience}
+              onChange={(value) => updateRating('experience', value)}
+            />
+            <RatingInput
+              label="Cultural Fit"
+              value={assessmentData.cultural}
+              onChange={(value) => updateRating('cultural', value)}
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-lg">Overall Rating</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <RatingInput
+              label="Overall Rating"
+              value={assessmentData.overallRating}
+              onChange={(value) => updateRating('overallRating', value)}
+              size="large"
+            />
+            <RatingInput
+              label="Job Fit Score"
+              value={assessmentData.jobFitScore}
+              onChange={(value) => updateRating('jobFitScore', value)}
+              size="large"
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Notes Section */}
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Interview Notes & Insights
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex gap-2">
+            <Textarea
+              placeholder="Add your notes and observations..."
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              className="flex-1"
+              rows={3}
+            />
+            <Button onClick={addNote} className="self-start">
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {assessmentData.insights.length > 0 && (
+            <div className="space-y-3 mt-6">
+              <h4 className="font-medium text-gray-900">Previous Notes</h4>
+              {assessmentData.insights.map((insight, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h5 className="font-medium text-gray-900">{insight.title}</h5>
+                      <p className="text-gray-700 mt-1">{insight.description}</p>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {new Date(insight.timestamp).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Documents Tab Component
+function CandidateDocumentsTab({ candidate }: { candidate: any }) {
+  return (
+    <div className="space-y-4">
+      <Card className="border border-gray-200">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Uploaded Documents
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center p-8 text-center border-2 border-dashed border-gray-300 rounded-lg">
+            <div>
+              <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600">Document management coming soon</p>
+              <p className="text-sm text-gray-500 mt-1">
+                Original filename: {candidate.original_filename || 'N/A'}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// Rating Input Component
+function RatingInput({ 
+  label, 
+  value, 
+  onChange, 
+  size = 'normal' 
+}: { 
+  label: string; 
+  value: number; 
+  onChange: (value: number) => void; 
+  size?: 'normal' | 'large'; 
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-sm font-medium text-gray-700">{label}</label>
+        <span className="text-sm text-gray-500">{value}/10</span>
+      </div>
+      <div className="flex items-center gap-2">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((rating) => (
+          <button
+            key={rating}
+            onClick={() => onChange(rating)}
+            className={cn(
+              "transition-colors rounded-full border-2",
+              size === 'large' ? "h-8 w-8" : "h-6 w-6",
+              rating <= value
+                ? "bg-blue-600 border-blue-600"
+                : "bg-white border-gray-300 hover:border-blue-300"
+            )}
+          >
+            <span className="sr-only">{rating}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Insights Panel Component
+function CandidateInsightsPanel({ 
+  candidate: _candidate, 
+  insights, 
+  assessmentData 
+}: { 
+  candidate: any; 
+  insights: any; 
+  assessmentData: AssessmentData; 
+}) {
+  return (
+    <Card className="border border-gray-200 shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-purple-600" />
+          AI Insights
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Profile Completeness */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">Profile Completeness</span>
+            <span className="text-sm text-gray-500">{insights?.completeness}%</span>
+          </div>
+          <Progress value={insights?.completeness || 0} className="h-2" />
+        </div>
+
+        {/* Experience Level */}
+        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+            <span className="font-medium text-blue-900">Experience Level</span>
+          </div>
+          <p className="text-sm text-blue-800">{insights?.experienceLevel}</p>
+          <p className="text-xs text-blue-600 mt-1">
+            {insights?.totalExperience} years total experience
+          </p>
+        </div>
+
+        {/* Key Strengths */}
+        {insights?.strengths && insights.strengths.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-gray-900">Key Strengths</h4>
+            <div className="space-y-1">
+              {insights.strengths.slice(0, 3).map((strength: string, index: number) => (
+                <div key={index} className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-sm text-gray-700">{strength}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Recommendations */}
+        <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+          <div className="flex items-center gap-2 mb-2">
+            <Brain className="h-4 w-4 text-green-600" />
+            <span className="font-medium text-green-900">AI Recommendation</span>
+          </div>
+          <p className="text-sm text-green-800">
+            Strong candidate for technical roles. Consider for senior positions based on experience.
+          </p>
+        </div>
+
+        {/* Overall Score */}
+        {assessmentData.overallRating > 0 && (
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-600 mb-1">
+              {assessmentData.overallRating}/10
+            </div>
+            <p className="text-sm text-gray-600">Overall Assessment</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Actions Panel Component
+function CandidateActionsPanel({ 
+  candidate: _candidate, 
+  onExtract, 
+  onDelete 
+}: { 
+  candidate: any; 
+  onExtract: () => void; 
+  onDelete: () => void; 
+}) {
+  return (
+    <Card className="border border-gray-200 shadow-lg">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="h-5 w-5 text-yellow-600" />
+          Quick Actions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <Button 
+          onClick={onExtract} 
+          className="w-full justify-start bg-blue-600 hover:bg-blue-700"
+        >
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Re-extract Profile
+        </Button>
+        
+        <Button variant="outline" className="w-full justify-start">
+          <Download className="h-4 w-4 mr-2" />
+          Download CV
+        </Button>
+        
+        <Button variant="outline" className="w-full justify-start">
+          <Share2 className="h-4 w-4 mr-2" />
+          Share Profile
+        </Button>
+
+        <Button variant="outline" className="w-full justify-start">
+          <Bookmark className="h-4 w-4 mr-2" />
+          Add to Shortlist
+        </Button>
+
+        <Separator />
+
+        <Button 
+          variant="outline" 
+          onClick={onDelete}
+          className="w-full justify-start text-red-600 border-red-200 hover:bg-red-50"
+        >
+          <Archive className="h-4 w-4 mr-2" />
+          Archive Candidate
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Profile Extraction Modal Component
+function ProfileExtractionModal({ 
+  candidate, 
+  onClose 
+}: { 
+  candidate: any; 
+  onClose: () => void; 
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.95, opacity: 0 }}
+        className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">Profile Extraction</h2>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <ProfileExtraction candidate={candidate} />
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Enhanced Loading Skeleton
+function EnhancedLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      {/* Hero Skeleton */}
+      <div className="rounded-2xl bg-gray-100 p-8 animate-pulse">
+        <div className="flex items-start gap-6">
+          <div className="h-20 w-20 rounded-full bg-gray-200" />
+          <div className="flex-1 space-y-3">
+            <div className="h-8 w-64 bg-gray-200 rounded" />
+            <div className="h-4 w-48 bg-gray-200 rounded" />
+            <div className="flex gap-4">
+              <div className="h-4 w-32 bg-gray-200 rounded" />
+              <div className="h-4 w-32 bg-gray-200 rounded" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Content Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <div className="h-96 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-48 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-32 bg-gray-100 rounded-xl animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Enhanced Error State
+function EnhancedErrorState({ 
+  onRetry, 
+  onBack 
+}: { 
+  onRetry: () => void; 
+  onBack: () => void; 
+}) {
+  return (
+    <div className="text-center py-12">
+      <div className="w-20 h-20 mx-auto mb-6 bg-red-100 rounded-full flex items-center justify-center">
+        <AlertCircle className="h-10 w-10 text-red-600" />
+      </div>
+      <h2 className="text-2xl font-bold text-gray-900 mb-2">Candidate Not Found</h2>
+      <p className="text-gray-600 mb-6">
+        The candidate you're looking for doesn't exist or has been removed.
+      </p>
+      <div className="flex items-center justify-center gap-4">
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Candidates
+        </Button>
+        <Button onClick={onRetry}>
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Try Again
+        </Button>
+      </div>
+    </div>
   );
 }

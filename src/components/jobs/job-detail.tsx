@@ -5,14 +5,15 @@
 
 'use client';
 
-import { ArrowLeft, Edit2, Trash2, Eye, Share2, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Eye, Share2, Pause, Play, Check, X, MessageSquare, Users, Calendar, MapPin, DollarSign, Briefcase, Building } from 'lucide-react';
 import React from 'react';
+import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
-import { useJob, useDeleteJob } from '@/hooks/jobs';
+import { useJob, useDeleteJob, useJobDescriptions } from '@/hooks/jobs';
 import { JobType, JobMode, SeniorityLevel, JobStatus } from '@/types/api';
 import { formatSalaryRange } from '@/lib/utils';
 
@@ -59,23 +60,56 @@ const getSeniorityLabel = (level: SeniorityLevel): string => {
   return labels[level] || level;
 };
 
-const getStatusVariant = (status: JobStatus): 'default' | 'success' | 'warning' | 'error' => {
-  switch (status) {
+const getStatusLabel = (status: JobStatus | string): string => {
+  // Handle both enum values and potential backend string values
+  const normalizedStatus = typeof status === 'string' ? status.toLowerCase() : status;
+  
+  switch (normalizedStatus) {
     case JobStatus.ACTIVE:
+    case 'active':
+    case 'approved':
+      return 'Active';
+    case JobStatus.PAUSED:
+    case 'paused':
+      return 'Paused';
+    case JobStatus.CLOSED:
+    case 'closed':
+      return 'Closed';
+    case JobStatus.DRAFT:
+    case 'draft':
+    default:
+      return 'Draft';
+  }
+};
+
+const getStatusVariant = (status: JobStatus | string): 'default' | 'success' | 'warning' | 'error' => {
+  const normalizedStatus = typeof status === 'string' ? status.toLowerCase() : status;
+  
+  switch (normalizedStatus) {
+    case JobStatus.ACTIVE:
+    case 'active':
+    case 'approved':
       return 'success';
     case JobStatus.PAUSED:
+    case 'paused':
       return 'warning';
     case JobStatus.CLOSED:
+    case 'closed':
       return 'error';
     case JobStatus.DRAFT:
+    case 'draft':
     default:
       return 'default';
   }
 };
 
 export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDetailProps) {
-  const { data: job, isLoading, isError } = useJob(jobId);
+  const { data: job, isLoading, isError, error } = useJob(jobId);
+  const { data: jobDescriptions, isLoading: descriptionsLoading } = useJobDescriptions(jobId, false, !!jobId);
   const deleteJobMutation = useDeleteJob();
+
+  // Get the current/latest job description
+  const currentDescription = jobDescriptions?.find(desc => desc.is_current) || jobDescriptions?.[0];
 
   const handleDelete = async () => {
     if (!job) return;
@@ -92,6 +126,53 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
         // Error is handled by the mutation hook
       }
     }
+  };
+
+  // Enhanced job description parser
+  const parseJobDescription = (content: string) => {
+    const lines = content.split('\n');
+    const sections: { title?: string; content: string[]; type: 'heading' | 'list' | 'paragraph' }[] = [];
+    let currentSection: { title?: string; content: string[]; type: 'heading' | 'list' | 'paragraph' } = { content: [], type: 'paragraph' };
+
+    lines.forEach((line) => {
+      const trimmedLine = line.trim();
+      
+      if (trimmedLine.startsWith('##') || trimmedLine.startsWith('#')) {
+        // Save previous section
+        if (currentSection.content.length > 0) {
+          sections.push(currentSection);
+        }
+        // Start new section
+        currentSection = {
+          title: trimmedLine.replace(/^#+\s*/, ''),
+          content: [],
+          type: 'heading'
+        };
+      } else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
+        if (currentSection.type !== 'list') {
+          if (currentSection.content.length > 0) {
+            sections.push(currentSection);
+          }
+          currentSection = { content: [], type: 'list' };
+        }
+        currentSection.content.push(trimmedLine.replace(/^[•\-*]\s*/, ''));
+      } else if (trimmedLine) {
+        if (currentSection.type !== 'paragraph') {
+          if (currentSection.content.length > 0) {
+            sections.push(currentSection);
+          }
+          currentSection = { content: [], type: 'paragraph' };
+        }
+        currentSection.content.push(trimmedLine);
+      }
+    });
+
+    // Add final section
+    if (currentSection.content.length > 0) {
+      sections.push(currentSection);
+    }
+
+    return sections;
   };
 
   if (isLoading) {
@@ -121,13 +202,35 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Job Not Found</h3>
-              <p className="text-gray-600">The requested job could not be found or you don't have permission to view it.</p>
+              <h3 className="text-lg font-medium text-gray-900">
+                {error?.message?.includes('Not authenticated') ? 'Authentication Required' : 'Job Not Found'}
+              </h3>
+              <p className="text-gray-600">
+                {error?.message?.includes('Not authenticated') 
+                  ? 'Please log in to view this job.' 
+                  : 'The requested job could not be found or you don\'t have permission to view it.'
+                }
+              </p>
+              {error && (
+                <details className="mt-4 text-sm text-gray-500">
+                  <summary className="cursor-pointer">Error Details</summary>
+                  <pre className="mt-2 text-left bg-gray-50 p-3 rounded text-xs overflow-auto">
+                    {JSON.stringify(error, null, 2)}
+                  </pre>
+                </details>
+              )}
             </div>
-            <Button variant="outline" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Jobs
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" onClick={onBack}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Back to Jobs
+              </Button>
+              {error?.message?.includes('Not authenticated') && (
+                <Button variant="primary" onClick={() => window.location.href = '/login'}>
+                  Log In
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -136,108 +239,187 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
 
   return (
     <div className={className}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-2xl font-bold text-gray-900">{job.title}</h1>
-              <Badge variant={getStatusVariant(job.status as JobStatus)}>
-                {job.status}
-              </Badge>
-            </div>
-            <p className="text-gray-600">
-              {job.department} • {job.location} • {getJobTypeLabel(job.job_type as JobType)}
-            </p>
-          </div>
-        </div>
+      {/* Modern Header with Hero Section */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 -mx-6 -mt-6 px-6 pt-6 pb-8 mb-8">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-4">
+            <Button variant="ghost" size="sm" onClick={onBack} className="mt-1">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-3">
+                <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+                <Badge 
+                  variant={getStatusVariant(job.status)} 
+                  className="text-sm px-3 py-1"
+                >
+                  {getStatusLabel(job.status)}
+                </Badge>
+              </div>
+              
+              <div className="flex flex-wrap items-center gap-4 text-gray-600 mb-4">
+                <div className="flex items-center">
+                  <Building className="h-4 w-4 mr-2" />
+                  {job.department}
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  {job.location}
+                </div>
+                <div className="flex items-center">
+                  <Briefcase className="h-4 w-4 mr-2" />
+                  {getJobTypeLabel(job.job_type as JobType)} • {getJobModeLabel(job.job_mode as JobMode)}
+                </div>
+                {(job.salary_min || job.salary_max) && (
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-2" />
+                    {formatSalaryRange(job.salary_min, job.salary_max, job.salary_currency)}
+                  </div>
+                )}
+              </div>
 
-        {/* Actions */}
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" size="sm">
-            <Eye className="h-4 w-4 mr-1" />
-            Preview
-          </Button>
-          <Button variant="outline" size="sm">
-            <Share2 className="h-4 w-4 mr-1" />
-            Share
-          </Button>
-          {job.status === JobStatus.ACTIVE ? (
+              <div className="flex items-center text-sm text-gray-500">
+                <Calendar className="h-4 w-4 mr-2" />
+                Created {new Date(job.created_at).toLocaleDateString()} • Updated {new Date(job.updated_at).toLocaleDateString()}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center space-x-2">
+            {job.status === 'draft' && (
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => {
+                    // Temporary workaround until backend endpoint is ready
+                    toast('Job approval workflow is coming soon! Contact your administrator to approve this job manually.', {
+                      icon: '⏳',
+                      duration: 4000
+                    });
+                  }}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="h-4 w-4 mr-1" />
+                  Approve Job
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    // Temporary workaround until backend endpoint is ready
+                    toast('Job approval workflow is coming soon! Contact your administrator to reject this job manually.', {
+                      icon: '⏳',
+                      duration: 4000
+                    });
+                  }}
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Reject
+                </Button>
+              </div>
+            )}
+            
             <Button variant="outline" size="sm">
-              <Pause className="h-4 w-4 mr-1" />
-              Pause
+              <Eye className="h-4 w-4 mr-1" />
+              Preview
             </Button>
-          ) : (
             <Button variant="outline" size="sm">
-              <Play className="h-4 w-4 mr-1" />
-              Activate
+              <Share2 className="h-4 w-4 mr-1" />
+              Share
             </Button>
-          )}
-          <Button variant="outline" size="sm" onClick={onEdit}>
-            <Edit2 className="h-4 w-4 mr-1" />
-            Edit
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleDelete}
-            disabled={deleteJobMutation.isPending}
-          >
-            <Trash2 className="h-4 w-4 mr-1" />
-            Delete
-          </Button>
+            {job.status === JobStatus.ACTIVE ? (
+              <Button variant="outline" size="sm">
+                <Pause className="h-4 w-4 mr-1" />
+                Pause
+              </Button>
+            ) : job.status === JobStatus.PAUSED && (
+              <Button variant="outline" size="sm">
+                <Play className="h-4 w-4 mr-1" />
+                Activate
+              </Button>
+            )}
+            <Button variant="outline" size="sm" onClick={onEdit}>
+              <Edit2 className="h-4 w-4 mr-1" />
+              Edit
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Job Description */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Job Description</CardTitle>
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+        {/* Main Content - Job Description */}
+        <div className="xl:col-span-3 space-y-8">
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-semibold">Job Description</CardTitle>
+                {currentDescription && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <span>Source: {currentDescription.source}</span>
+                    {currentDescription.version && (
+                      <span className="ml-2">• v{currentDescription.version}</span>
+                    )}
+                    {currentDescription.is_current && (
+                      <Badge variant="outline" className="ml-2 text-xs">Current</Badge>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              {job.description ? (
-                <div className="prose prose-sm max-w-none">
-                  {job.description.split('\n').map((paragraph, index) => {
-                    if (paragraph.startsWith('##')) {
-                      return (
-                        <h3 key={index} className="text-lg font-semibold text-gray-900 mt-6 mb-3">
-                          {paragraph.replace('##', '').trim()}
+              {descriptionsLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <LoadingSpinner size="md" />
+                  <span className="ml-3 text-gray-600">Loading job description...</span>
+                </div>
+              ) : currentDescription?.content || job.description ? (
+                <div className="space-y-6">
+                  {parseJobDescription(currentDescription?.content || job.description!).map((section, index) => (
+                    <div key={index}>
+                      {section.title && (
+                        <h3 className="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-100 pb-2">
+                          {section.title}
                         </h3>
-                      );
-                    }
-                    if (paragraph.startsWith('•')) {
-                      return (
-                        <li key={index} className="ml-4">
-                          {paragraph.replace('•', '').trim()}
-                        </li>
-                      );
-                    }
-                    if (paragraph.trim()) {
-                      return (
-                        <p key={index} className="mb-4 text-gray-700">
-                          {paragraph.trim()}
-                        </p>
-                      );
-                    }
-                    return null;
-                  })}
+                      )}
+                      
+                      {section.type === 'list' ? (
+                        <ul className="space-y-2 ml-4">
+                          {section.content.map((item, itemIndex) => (
+                            <li key={itemIndex} className="flex items-start text-gray-700">
+                              <span className="text-blue-500 mr-3 mt-1">•</span>
+                              <span>{item}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="space-y-3">
+                          {section.content.map((paragraph, pIndex) => (
+                            <p key={pIndex} className="text-gray-700 leading-relaxed">
+                              {paragraph}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-1">No Description Available</h3>
-                  <p className="text-gray-600">This job doesn't have a description yet.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Job Description</h3>
+                  <p className="text-gray-600 mb-4">This job doesn't have a description yet.</p>
+                  <Button variant="outline" size="sm">
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Add Description
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -245,18 +427,18 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
 
           {/* Job Metadata */}
           {job.job_metadata && Object.keys(job.job_metadata).length > 0 && (
-            <Card>
+            <Card className="border-0 shadow-lg">
               <CardHeader>
                 <CardTitle>Additional Information</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {Object.entries(job.job_metadata).map(([key, value]) => (
-                    <div key={key}>
-                      <span className="text-sm font-medium text-gray-500 block">
+                    <div key={key} className="border-l-4 border-blue-100 pl-4">
+                      <span className="text-sm font-medium text-gray-500 block mb-1">
                         {key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                       </span>
-                      <p className="text-gray-900">{String(value)}</p>
+                      <p className="text-gray-900 font-medium">{String(value)}</p>
                     </div>
                   ))}
                 </div>
@@ -267,77 +449,104 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
 
         {/* Sidebar */}
         <div className="space-y-6">
-          {/* Job Details */}
-          <Card>
+          {/* Quick Stats */}
+          <Card className="border-0 shadow-lg">
             <CardHeader>
-              <CardTitle>Job Details</CardTitle>
+              <CardTitle className="flex items-center">
+                <Users className="h-5 w-5 mr-2" />
+                Job Overview
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Status</span>
-                <Badge variant={getStatusVariant(job.status as JobStatus)} className="mt-1">
-                  {job.status}
-                </Badge>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Job Type</span>
-                <p className="text-gray-900">{getJobTypeLabel(job.job_type as JobType)}</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Work Mode</span>
-                <p className="text-gray-900">{getJobModeLabel(job.job_mode as JobMode)}</p>
-              </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Seniority Level</span>
-                <p className="text-gray-900">{getSeniorityLabel(job.seniority_level as SeniorityLevel)}</p>
-              </div>
-              {(job.salary_min || job.salary_max) && (
-                <div>
-                  <span className="text-sm font-medium text-gray-500 block">Salary Range</span>
-                  <p className="text-gray-900">
-                    {formatSalaryRange(job.salary_min, job.salary_max, job.salary_currency)}
-                  </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">0</div>
+                  <div className="text-sm text-gray-600">Applications</div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Timestamps */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Timeline</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Created</span>
-                <p className="text-gray-900">
-                  {new Date(job.created_at).toLocaleString()}
-                </p>
+                <div className="text-center p-3 bg-green-50 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">0</div>
+                  <div className="text-sm text-gray-600">Candidates</div>
+                </div>
               </div>
-              <div>
-                <span className="text-sm font-medium text-gray-500 block">Last Updated</span>
-                <p className="text-gray-900">
-                  {new Date(job.updated_at).toLocaleString()}
-                </p>
+              
+              <div className="pt-4 border-t border-gray-100">
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-sm font-medium text-gray-500 block">Seniority Level</span>
+                    <p className="text-gray-900 font-medium">{getSeniorityLabel(job.seniority_level as SeniorityLevel)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500 block">Employment Type</span>
+                    <p className="text-gray-900 font-medium">{getJobTypeLabel(job.job_type as JobType)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium text-gray-500 block">Work Mode</span>
+                    <p className="text-gray-900 font-medium">{getJobModeLabel(job.job_mode as JobMode)}</p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
           {/* Quick Actions */}
-          <Card>
+          <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" size="sm" className="w-full">
-                View Candidates
+            <CardContent className="space-y-3">
+              <Button variant="outline" size="sm" className="w-full justify-start">
+                <Users className="h-4 w-4 mr-2" />
+                View Applications
               </Button>
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full justify-start">
+                <MessageSquare className="h-4 w-4 mr-2" />
                 Evaluation Results
               </Button>
-              <Button variant="outline" size="sm" className="w-full">
+              <Button variant="outline" size="sm" className="w-full justify-start">
+                <Share2 className="h-4 w-4 mr-2" />
                 Export Data
               </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full justify-start text-red-600 hover:bg-red-50"
+                onClick={handleDelete}
+                disabled={deleteJobMutation.isPending}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Job
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Job Timeline */}
+          <Card className="border-0 shadow-lg">
+            <CardHeader>
+              <CardTitle>Timeline</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-l-4 border-blue-100 pl-4">
+                <span className="text-sm font-medium text-gray-500 block">Created</span>
+                <p className="text-gray-900 font-medium">
+                  {new Date(job.created_at).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
+              <div className="border-l-4 border-green-100 pl-4">
+                <span className="text-sm font-medium text-gray-500 block">Last Updated</span>
+                <p className="text-gray-900 font-medium">
+                  {new Date(job.updated_at).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

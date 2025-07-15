@@ -98,6 +98,17 @@ export const jobsApi = {
       comment: comment || undefined
     }),
 
+  // Job approval workflow
+  approveJob: (
+    jobId: string,
+    action: 'approve' | 'reject' | 'request_changes' = 'approve',
+    comment?: string
+  ): Promise<{ message: string; job: JobResponse }> =>
+    apiPatch(`/jobs/${jobId}/approval`, {
+      action,
+      comment: comment || undefined
+    }),
+
   // Health checks
   checkAIServices: (): Promise<{
     status: string;

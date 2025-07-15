@@ -315,3 +315,31 @@ export function useAIServicesHealth() {
     retry: 3,
   });
 }
+
+// Job approval mutation
+export function useApproveJob() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: ({ 
+      jobId, 
+      action, 
+      comment 
+    }: { 
+      jobId: string; 
+      action: 'approve' | 'reject' | 'request_changes';
+      comment?: string;
+    }) => 
+      jobsApi.approveJob(jobId, action, comment),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(data.job.id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+      const actionText = data.job.status === 'active' ? 'approved' : 'updated';
+      toast.success(`Job ${actionText} successfully!`);
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.message || 'Failed to update job approval';
+      toast.error(message);
+    },
+  });
+}

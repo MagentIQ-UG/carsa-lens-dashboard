@@ -162,10 +162,21 @@ apiClient.interceptors.response.use(
       // Handle API errors
       const apiError: APIError = data as APIError;
       
+      // Log detailed error information
+      console.error('❌ API Error:', {
+        status,
+        url: error.config?.url,
+        error: apiError,
+        fullResponse: error.response,
+        data: data
+      });
+      
       // Show user-friendly error messages
       if (status >= 400 && status < 500) {
-        const errorMessage = apiError.message || 'Client error occurred';
-        toast.error(errorMessage);
+        const errorMessage = apiError.message || data?.message || 'Client error occurred';
+        if (status !== 401) { // Don't show toast for auth errors as they redirect
+          toast.error(errorMessage);
+        }
       } else if (status >= 500) {
         toast.error('Server error occurred. Please try again later.');
       }

@@ -5,14 +5,14 @@
 
 'use client';
 
-import { ArrowLeft, Edit2, Trash2, Eye, Share2, Pause, Play, Check, X, MessageSquare, Users, Calendar, MapPin, DollarSign, Briefcase, Building } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Eye, Share2, Pause, Play, MessageSquare, Users, Calendar, MapPin, DollarSign, Briefcase, Building } from 'lucide-react';
 import React from 'react';
-import { toast } from 'react-hot-toast';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Badge } from '@/components/ui/badge';
+import { JobDescriptionRenderer } from '@/components/ui/job-description-renderer';
 import { useJob, useDeleteJob, useJobDescriptions } from '@/hooks/jobs';
 import { JobType, JobMode, SeniorityLevel, JobStatus } from '@/types/api';
 import { formatSalaryRange } from '@/lib/utils';
@@ -128,53 +128,6 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
     }
   };
 
-  // Enhanced job description parser
-  const parseJobDescription = (content: string) => {
-    const lines = content.split('\n');
-    const sections: { title?: string; content: string[]; type: 'heading' | 'list' | 'paragraph' }[] = [];
-    let currentSection: { title?: string; content: string[]; type: 'heading' | 'list' | 'paragraph' } = { content: [], type: 'paragraph' };
-
-    lines.forEach((line) => {
-      const trimmedLine = line.trim();
-      
-      if (trimmedLine.startsWith('##') || trimmedLine.startsWith('#')) {
-        // Save previous section
-        if (currentSection.content.length > 0) {
-          sections.push(currentSection);
-        }
-        // Start new section
-        currentSection = {
-          title: trimmedLine.replace(/^#+\s*/, ''),
-          content: [],
-          type: 'heading'
-        };
-      } else if (trimmedLine.startsWith('•') || trimmedLine.startsWith('-') || trimmedLine.startsWith('*')) {
-        if (currentSection.type !== 'list') {
-          if (currentSection.content.length > 0) {
-            sections.push(currentSection);
-          }
-          currentSection = { content: [], type: 'list' };
-        }
-        currentSection.content.push(trimmedLine.replace(/^[•\-*]\s*/, ''));
-      } else if (trimmedLine) {
-        if (currentSection.type !== 'paragraph') {
-          if (currentSection.content.length > 0) {
-            sections.push(currentSection);
-          }
-          currentSection = { content: [], type: 'paragraph' };
-        }
-        currentSection.content.push(trimmedLine);
-      }
-    });
-
-    // Add final section
-    if (currentSection.content.length > 0) {
-      sections.push(currentSection);
-    }
-
-    return sections;
-  };
-
   if (isLoading) {
     return (
       <div className={className}>
@@ -287,41 +240,6 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2">
-            {job.status === 'draft' && (
-              <div className="flex items-center space-x-2">
-                <Button 
-                  variant="primary" 
-                  size="sm"
-                  onClick={() => {
-                    // Temporary workaround until backend endpoint is ready
-                    toast('Job approval workflow is coming soon! Contact your administrator to approve this job manually.', {
-                      icon: '⏳',
-                      duration: 4000
-                    });
-                  }}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="h-4 w-4 mr-1" />
-                  Approve Job
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    // Temporary workaround until backend endpoint is ready
-                    toast('Job approval workflow is coming soon! Contact your administrator to reject this job manually.', {
-                      icon: '⏳',
-                      duration: 4000
-                    });
-                  }}
-                  className="text-red-600 border-red-200 hover:bg-red-50"
-                >
-                  <X className="h-4 w-4 mr-1" />
-                  Reject
-                </Button>
-              </div>
-            )}
-            
             <Button variant="outline" size="sm">
               <Eye className="h-4 w-4 mr-1" />
               Preview
@@ -377,36 +295,12 @@ export function JobDetail({ jobId, onBack, onEdit, onDelete, className }: JobDet
                   <span className="ml-3 text-gray-600">Loading job description...</span>
                 </div>
               ) : currentDescription?.content || job.description ? (
-                <div className="space-y-6">
-                  {parseJobDescription(currentDescription?.content || job.description!).map((section, index) => (
-                    <div key={index}>
-                      {section.title && (
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-100 pb-2">
-                          {section.title}
-                        </h3>
-                      )}
-                      
-                      {section.type === 'list' ? (
-                        <ul className="space-y-2 ml-4">
-                          {section.content.map((item, itemIndex) => (
-                            <li key={itemIndex} className="flex items-start text-gray-700">
-                              <span className="text-blue-500 mr-3 mt-1">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <div className="space-y-3">
-                          {section.content.map((paragraph, pIndex) => (
-                            <p key={pIndex} className="text-gray-700 leading-relaxed">
-                              {paragraph}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                <JobDescriptionRenderer
+                  content={currentDescription?.content || job.description!}
+                  title=""
+                  compact={true}
+                  showActions={false}
+                />
               ) : (
                 <div className="text-center py-12">
                   <div className="text-gray-400 mb-4">

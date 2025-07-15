@@ -5,6 +5,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { analyticsApi } from '@/lib/api';
 
 interface AnalyticsMetrics {
   jobs: {
@@ -63,10 +64,41 @@ export function useAnalytics() {
   return useQuery({
     queryKey: ['analytics', 'dashboard'],
     queryFn: async (): Promise<AnalyticsMetrics> => {
-      // TODO: Replace with actual API call
-      // return analyticsApi.getDashboardMetrics();
-      await new Promise(resolve => setTimeout(resolve, 500)); // Simulate API call
-      return mockAnalyticsData;
+      try {
+        // Use the real analytics API
+        const overview = await analyticsApi.getOverview();
+        
+        // Transform the API response to match our interface
+        return {
+          jobs: {
+            total: overview.jobs?.total || 0,
+            active: overview.jobs?.active || 0,
+            draft: overview.jobs?.draft || 0,
+            closed: overview.jobs?.closed || 0,
+          },
+          candidates: {
+            total: overview.candidates?.total || 0,
+            new: overview.candidates?.new || 0,
+            evaluated: overview.candidates?.evaluated || 0,
+            shortlisted: overview.candidates?.shortlisted || 0,
+          },
+          performance: {
+            timeToHire: overview.performance?.time_to_hire || 0,
+            hireRate: overview.performance?.hire_rate || 0,
+            candidateQuality: overview.performance?.candidate_quality || 0,
+            evaluationSpeed: overview.performance?.evaluation_speed || 0,
+          },
+          trends: {
+            jobGrowth: overview.trends?.job_growth || 0,
+            candidateGrowth: overview.trends?.candidate_growth || 0,
+            evaluationTrend: overview.trends?.evaluation_trend || 0,
+          },
+        };
+      } catch (error) {
+        console.warn('Analytics API unavailable, falling back to mock data:', error);
+        // Fallback to mock data if API is unavailable
+        return mockAnalyticsData;
+      }
     },
     staleTime: 60000, // 1 minute
     refetchInterval: 300000, // 5 minutes

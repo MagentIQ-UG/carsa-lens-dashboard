@@ -66,6 +66,24 @@ export const candidatesApi = {
   ): Promise<{ message: string; processing_id: string }> =>
     apiPost(`/candidates/${candidateId}/reprocess`, {}, { params: { extract_profile: extractProfile } }),
 
+  // Processing status
+  getProcessingStatus: (params?: {
+    job_id?: string;
+    status?: 'pending' | 'processing' | 'completed' | 'failed';
+    limit?: number;
+  }): Promise<{
+    processing_jobs: Array<{
+      id: string;
+      candidate_id: string;
+      status: string;
+      progress: number;
+      started_at: string;
+      estimated_completion: string;
+    }>;
+    total_count: number;
+  }> =>
+    apiGet('/candidates/processing-status', { params }),
+
   // Health checks
   checkProcessingHealth: (): Promise<{
     status: string;
@@ -74,6 +92,12 @@ export const candidatesApi = {
     average_processing_time: number;
   }> =>
     apiGet('/candidates/health/processing'),
+
+  checkGeneralHealth: (): Promise<{
+    status: string;
+    services: Record<string, any>;
+  }> =>
+    apiGet('/candidates/health'),
 };
 
 export default candidatesApi;

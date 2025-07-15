@@ -9,6 +9,191 @@ export interface BaseResponse<T = unknown> {
   errors?: string[];
 }
 
+// Analytics Types
+export interface AnalyticsOverview {
+  jobs?: {
+    total: number;
+    active: number;
+    draft: number;
+    closed: number;
+  };
+  candidates?: {
+    total: number;
+    new: number;
+    evaluated: number;
+    shortlisted: number;
+  };
+  performance?: {
+    time_to_hire: number;
+    hire_rate: number;
+    candidate_quality: number;
+    evaluation_speed: number;
+  };
+  trends?: {
+    job_growth: number;
+    candidate_growth: number;
+    evaluation_trend: number;
+  };
+}
+
+export interface AnalyticsReport {
+  id: string;
+  title: string;
+  type: string;
+  status: 'pending' | 'generating' | 'completed' | 'failed';
+  created_at: string;
+  updated_at: string;
+  data?: any;
+  summary?: string;
+  charts?: any[];
+}
+
+export interface AnalyticsInsight {
+  id: string;
+  type: 'trend' | 'anomaly' | 'recommendation' | 'alert';
+  title: string;
+  description: string;
+  confidence: number;
+  impact: 'high' | 'medium' | 'low';
+  dismissed: boolean;
+  created_at: string;
+  data?: any;
+}
+
+export interface AnalyticsUsage {
+  period: string;
+  total_requests: number;
+  unique_users: number;
+  feature_usage: Record<string, number>;
+  performance_metrics: {
+    average_response_time: number;
+    error_rate: number;
+    uptime: number;
+  };
+}
+
+export interface AnalyticsMetrics {
+  metric_name: string;
+  metric_value: number;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface ReportGenerationRequest {
+  type: 'hiring' | 'candidates' | 'performance' | 'diversity';
+  date_range: {
+    start: string;
+    end: string;
+  };
+  job_id?: string;
+  filters?: Record<string, any>;
+}
+
+export interface InsightGenerationRequest {
+  type: 'trend' | 'anomaly' | 'recommendation';
+  data_source: 'jobs' | 'candidates' | 'evaluations' | 'rankings';
+  parameters?: Record<string, any>;
+}
+
+export interface MetricRecordRequest {
+  metric_name: string;
+  metric_value: number;
+  timestamp: string;
+  metadata?: Record<string, any>;
+}
+
+export interface EventTrackingRequest {
+  event_type: string;
+  event_data: Record<string, any>;
+  timestamp: string;
+  user_id?: string;
+}
+
+// Rankings Types
+export interface RankingResponse {
+  id: string;
+  job_id: string;
+  candidate_id: string;
+  rank: number;
+  score: number;
+  confidence: number;
+  criteria_scores: Record<string, number>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RankingCreateRequest {
+  job_id: string;
+  candidate_id: string;
+  criteria_weights?: Record<string, number>;
+  custom_parameters?: Record<string, any>;
+}
+
+export interface RankingFilters {
+  job_id?: string;
+  candidate_id?: string;
+  min_score?: number;
+  max_score?: number;
+  limit?: number;
+  offset?: number;
+}
+
+export interface RankingAnalytics {
+  ranking_id: string;
+  total_candidates: number;
+  score_distribution: Record<string, number>;
+  top_criteria: string[];
+  average_confidence: number;
+  diversity_metrics: {
+    gender_distribution: Record<string, number>;
+    age_distribution: Record<string, number>;
+    location_distribution: Record<string, number>;
+  };
+}
+
+export interface RankingComparison {
+  base_ranking_id: string;
+  compared_rankings: string[];
+  correlation_scores: Record<string, number>;
+  differences: Array<{
+    candidate_id: string;
+    rank_difference: number;
+    score_difference: number;
+  }>;
+}
+
+export interface DiversityReport {
+  ranking_id: string;
+  diversity_score: number;
+  metrics: {
+    gender_balance: number;
+    age_diversity: number;
+    location_diversity: number;
+    education_diversity: number;
+    experience_diversity: number;
+  };
+  recommendations: string[];
+}
+
+export interface ShortlistResponse {
+  id: string;
+  job_id: string;
+  name: string;
+  description?: string;
+  candidate_ids: string[];
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  status: 'active' | 'archived';
+}
+
+export interface ShortlistCreateRequest {
+  job_id: string;
+  name: string;
+  description?: string;
+  candidate_ids: string[];
+}
+
 // Authentication Types
 export interface LoginRequest {
   email: string;

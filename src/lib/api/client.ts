@@ -56,6 +56,8 @@ apiClient.interceptors.request.use(
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ No auth token available for request:', config.url);
     }
 
     // Add organization context if available (use sessionStorage for security)
@@ -174,15 +176,23 @@ apiClient.interceptors.response.use(
           status,
           url: error.config?.url,
           error: apiError,
+          response: error.response,
         });
       }
 
       return Promise.reject(apiError);
     } else if (error.request) {
-      // Network error
+      // Network error - log detailed information
+      console.error('❌ Network Error Details:', {
+        request: error.request,
+        config: error.config,
+        message: error.message,
+        code: error.code,
+        stack: error.stack,
+        full_error: error
+      });
       toast.error('Network error. Please check your connection.');
-      console.error('❌ Network Error:', error.request);
-      return Promise.reject(new Error('Network error'));
+      return Promise.reject(error); // Return original error to preserve details
     } else {
       // Other error
       console.error('❌ Unknown Error:', error.message);
@@ -258,7 +268,8 @@ export const uploadFile = <T = unknown>(
     url,
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data',
+      // Remove default Content-Type so axios sets multipart/form-data with boundary
+      'Content-Type': undefined,
     },
     onUploadProgress: (progressEvent) => {
       if (onProgress && progressEvent.total) {
@@ -294,7 +305,8 @@ export const uploadFiles = <T = unknown>(
     url,
     data: formData,
     headers: {
-      'Content-Type': 'multipart/form-data',
+      // Remove default Content-Type so axios sets multipart/form-data with boundary
+      'Content-Type': undefined,
     },
     onUploadProgress: (progressEvent) => {
       if (onProgress && progressEvent.total) {

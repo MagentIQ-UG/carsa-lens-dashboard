@@ -6,6 +6,20 @@
 **Architecture:** Next.js 15 + React 19 + TypeScript + Enterprise UI/UX  
 **Backend API:** 100% operational at `https://ca-carsa-lens-dev.kindplant-1a06368c.centralus.azurecontainerapps.io/api/v1`
 
+## 🚨 **CURRENT ISSUE: CV Upload Network Error**
+- **Problem**: Persistent "Network Error: {}" on CV upload despite API schema fixes
+- **Status**: IN PROGRESS - Investigating authentication and network layers
+- **Priority**: HIGH - Blocking candidate management functionality
+- **Last Updated**: 2025-01-14
+
+### Current Debugging Steps:
+1. ✅ Fixed API schema alignment with OpenAPI spec
+2. ✅ Updated request parameters to match backend
+3. ✅ Fixed Content-Type headers for multipart uploads
+4. 🔄 ACTIVE: Investigating authentication token issues
+5. ⏳ TODO: Test direct API calls with authentication
+6. ⏳ TODO: Enable detailed request/response logging
+
 ---
 
 ## 📋 **PHASE 1: FOUNDATION & PROJECT SETUP** (Days 1-2)

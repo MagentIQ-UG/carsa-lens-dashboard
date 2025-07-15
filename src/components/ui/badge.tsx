@@ -9,7 +9,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'outline' | 'ghost';
   size?: 'sm' | 'md' | 'lg';
   rounded?: boolean;
   outlined?: boolean;
@@ -24,6 +24,8 @@ const badgeVariants = {
   warning: 'bg-yellow-100 text-yellow-800',
   error: 'bg-red-100 text-red-800',
   info: 'bg-cyan-100 text-cyan-800',
+  outline: 'border border-gray-300 text-gray-700 bg-white',
+  ghost: 'bg-transparent text-gray-600 hover:bg-gray-100',
 };
 
 const badgeOutlinedVariants = {
@@ -34,6 +36,8 @@ const badgeOutlinedVariants = {
   warning: 'border border-yellow-300 text-yellow-700 bg-white',
   error: 'border border-red-300 text-red-700 bg-white',
   info: 'border border-cyan-300 text-cyan-700 bg-white',
+  outline: 'border border-gray-300 text-gray-700 bg-white',
+  ghost: 'border border-transparent text-gray-600 bg-transparent',
 };
 
 const badgeSizes = {

@@ -3,6 +3,8 @@ export { default as authApi } from './auth';
 export { default as jobsApi } from './jobs';
 export { default as candidatesApi } from './candidates';
 export { default as evaluationsApi } from './evaluations';
+export { default as analyticsApi } from './analytics';
+export { default as rankingsApi } from './rankings';
 
 export {
   apiClient,

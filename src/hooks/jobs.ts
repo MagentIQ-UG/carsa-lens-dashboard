@@ -352,55 +352,94 @@ export function useJobStats(jobId: string) {
   return useQuery({
     queryKey: [...jobKeys.detail(jobId), 'stats'],
     queryFn: async () => {
+      console.log(`Getting job statistics for job: ${jobId}`);
+      
       try {
-        // Fetch candidates filtered by job_id
-        const response = await apiClient.get('/candidates', {
-          params: {
-            job_id: jobId,
-            limit: 1000 // Get all candidates for this job
-          }
-        });
-
-        let candidates: any[] = [];
-        if (Array.isArray(response.data)) {
-          candidates = response.data;
-        } else if (response.data.items && Array.isArray(response.data.items)) {
-          candidates = response.data.items;
-        }
-
-        // Calculate statistics
-        const totalCandidates = candidates.length;
+        // Use the existing analytics endpoint for job statistics
+        const response = await apiClient.get(`/api/v1/analytics/jobs/${jobId}/insights`);
         
-        // Applications count could be based on candidates or a separate concept
-        // For now, we'll assume each candidate represents an application
-        const applicationsCount = totalCandidates;
+        // Extract relevant statistics from the analytics response
+        const analytics = response.data;
         
-        // Active candidates (completed processing)
-        const activeCandidates = candidates.filter(c => 
-          c.processing_status === 'completed'
-        ).length;
-
         return {
-          applications: applicationsCount,
-          candidates: totalCandidates,
-          activeCandidates,
-          processingCandidates: candidates.filter(c => 
-            c.processing_status === 'processing'
-          ).length,
-          failedCandidates: candidates.filter(c => 
-            c.processing_status === 'failed'
-          ).length,
+          applications: analytics.funnel_metrics?.applications || analytics.event_statistics?.total_applications || 0,
+          candidates: analytics.funnel_metrics?.candidates || analytics.funnel_metrics?.applications || 0,
+          totalEvaluations: analytics.funnel_metrics?.evaluations || analytics.event_statistics?.completed_evaluations || 0,
+          qualifiedCandidates: analytics.quality_metrics?.qualified_candidates || 0,
+          highScoringCandidates: analytics.quality_metrics?.highly_qualified_candidates || 0,
         };
       } catch (error) {
-        console.error('Failed to fetch job statistics:', error);
-        // Return fallback data
-        return {
-          applications: 0,
-          candidates: 0,
-          activeCandidates: 0,
-          processingCandidates: 0,
-          failedCandidates: 0,
-        };
+        console.error('Failed to fetch job analytics, falling back to evaluations endpoint:', error);
+        
+        // Fallback: Try to get statistics from evaluations endpoint
+        try {
+          const response = await apiClient.get('/api/v1/evaluations', {
+            params: {
+              job_id: jobId,
+              limit: 1000 // Get all evaluations for this job
+            }
+          });
+
+          let evaluations: any[] = [];
+          // Handle different response structures from the evaluations API
+          if (response.data?.success && Array.isArray(response.data.data?.items)) {
+            evaluations = response.data.data.items;
+          } else if (Array.isArray(response.data?.data?.items)) {
+            evaluations = response.data.data.items;
+          } else if (Array.isArray(response.data?.items)) {
+            evaluations = response.data.items;
+          } else if (Array.isArray(response.data)) {
+            evaluations = response.data;
+          }
+
+          // If no evaluations exist for this job, return zero counts
+          if (!evaluations || evaluations.length === 0) {
+            return {
+              applications: 0,
+              candidates: 0,
+              totalEvaluations: 0,
+              qualifiedCandidates: 0,
+              highScoringCandidates: 0,
+            };
+          }
+
+          // Calculate statistics from evaluations
+          const totalEvaluations = evaluations.length;
+          
+          // Get unique candidates (applications) - each unique candidate_id represents an application
+          const uniqueCandidateIds = new Set(evaluations.map(e => e.candidate_id));
+          const applicationsCount = uniqueCandidateIds.size;
+          
+          // Candidates count is the same as applications count since each candidate represents one application
+          const candidatesCount = applicationsCount;
+          
+          // Additional statistics based on evaluation data
+          const qualifiedCandidates = evaluations.filter(e => 
+            e.qualification_tier === 'highly_qualified' || e.qualification_tier === 'qualified'
+          ).length;
+          
+          const highScoringCandidates = evaluations.filter(e => 
+            e.overall_score && e.overall_score >= 0.7
+          ).length;
+
+          return {
+            applications: applicationsCount,
+            candidates: candidatesCount,
+            totalEvaluations,
+            qualifiedCandidates,
+            highScoringCandidates,
+          };
+        } catch (fallbackError) {
+          console.error('Failed to fetch job statistics from both endpoints:', fallbackError);
+          // Return fallback data
+          return {
+            applications: 0,
+            candidates: 0,
+            totalEvaluations: 0,
+            qualifiedCandidates: 0,
+            highScoringCandidates: 0,
+          };
+        }
       }
     },
     enabled: !!jobId,

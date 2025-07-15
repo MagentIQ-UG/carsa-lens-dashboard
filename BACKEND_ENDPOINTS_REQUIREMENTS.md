@@ -1,4 +1,4 @@
-# Backend API Endpoints Requirements
+# Backend API- 📋 **Only 5 endpoints missing** - Non-critical features for enhanced functionality (2 core + 3 enhancements)Endpoints Requirements
 
 ## Overview
 This document outlines the comprehensive API endpoints needed for the fully-featured candidate management system (Phase 5.3) implementation. **GREAT NEWS:** After verification with backend team, **11 out of 11 core candidate endpoints are now available and working!** 🎉
@@ -87,6 +87,51 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 - **Frontend Integration**: Dashboard stats, CandidateList stats, useCandidateStats hook
 - **Priority**: 🔥 **High** - Needed for efficient dashboard metrics
 - **Current Workaround**: Frontend calculates stats from candidate list data
+
+#### 13. **GET /api/v1/jobs/{job_id}/stats** - Job-Specific Statistics
+- **Status**: ✅ **RESOLVED** - Using existing analytics endpoint `/api/v1/analytics/jobs/{job_id}/insights`
+- **Frontend Integration**: JobDetail component, useJobStats hook - **UPDATED**
+- **Priority**: 🔥 **High** - Critical for accurate job-specific metrics display
+- **Resolution**: Frontend now uses analytics endpoint with fallback to evaluations endpoint
+- **Available Endpoint**: `/api/v1/analytics/jobs/{job_id}/insights`
+- **Implementation**: Updated `useJobStats` hook to:
+  1. Primary: Use analytics endpoint for comprehensive job statistics
+  2. Fallback: Use evaluations endpoint with job_id filtering for manual calculation
+  3. Error handling: Return zeros if both endpoints fail
+- **Available Response Structure**:
+  ```json
+  {
+    "job_id": "uuid",
+    "funnel_metrics": {
+      "applications": 15,
+      "candidates": 15,
+      "evaluations": 12
+    },
+    "conversion_rates": {
+      "application_to_evaluation": 0.8,
+      "evaluation_to_qualified": 0.6
+    },
+    "time_metrics": {
+      "avg_time_to_evaluation": 2.5,
+      "avg_evaluation_duration": 45.0
+    },
+    "quality_metrics": {
+      "avg_overall_score": 0.75,
+      "qualified_candidates": 8,
+      "highly_qualified_candidates": 3
+    },
+    "event_statistics": {
+      "total_applications": 15,
+      "completed_evaluations": 12,
+      "pending_evaluations": 3
+    },
+    "performance_statistics": {
+      "evaluation_success_rate": 0.92,
+      "avg_confidence_level": 0.85
+    },
+    "updated_at": "2024-01-15T14:20:00Z"
+  }
+  ```
 - **Expected Response**:
   ```json
   {
@@ -113,7 +158,7 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 
 ### ⚡ MEDIUM PRIORITY (Management Features)
 
-#### 13. **PUT /api/v1/candidates/{candidate_id}** - Update Basic Candidate Info
+#### 14. **PUT /api/v1/candidates/{candidate_id}** - Update Basic Candidate Info
 - **Status**: ❌ **MEDIUM** - Basic candidate updates not available
 - **Frontend Integration**: CandidateCard edit functionality, useUpdateCandidate hook
 - **Priority**: ⚡ **Medium** - Basic management operations
@@ -130,7 +175,7 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
   }
   ```
 
-#### 14. **DELETE /api/v1/candidates/{candidate_id}** - Delete Candidate  
+#### 15. **DELETE /api/v1/candidates/{candidate_id}** - Delete Candidate  
 - **Status**: ❌ **MEDIUM** - Candidate deletion not available
 - **Frontend Integration**: CandidateCard delete functionality, useDeleteCandidate hook
 - **Priority**: ⚡ **Medium** - Management operations
@@ -138,7 +183,7 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 
 ### 🆕 RECOMMENDED (URL Enhancement Features)
 
-#### 15. **POST /api/v1/candidates/{candidate_id}/enhance-urls** - Extract URLs from CV Content
+#### 16. **POST /api/v1/candidates/{candidate_id}/enhance-urls** - Extract URLs from CV Content
 - **Status**: ❌ **RECOMMENDED** - URL extraction from CV content not available
 - **Frontend Integration**: ProfileExtraction, URL enhancement utilities
 - **Priority**: 💡 **Low** - Quality of life improvement
@@ -174,7 +219,7 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
   }
   ```
 
-#### 16. **GET /api/v1/candidates/{candidate_id}/original-text** - Get Original CV Text Content
+#### 17. **GET /api/v1/candidates/{candidate_id}/original-text** - Get Original CV Text Content
 - **Status**: ❌ **RECOMMENDED** - Original CV text content not exposed
 - **Frontend Integration**: URL extraction, profile enhancement
 - **Priority**: 💡 **Low** - Enables better frontend URL extraction
@@ -388,17 +433,29 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 - Diversity reporting and analytics
 - **Frontend**: CandidateRanking component, ranking hooks
 
-### **Evaluations API** (6 endpoints - ✅ Complete)
-- Candidate evaluation against job criteria
-- Batch evaluation processing
-- Evaluation analytics
-- **Frontend**: Evaluation components, scoring interfaces
+### **Evaluations API** (4 endpoints - ✅ Complete & Available)
+- **POST /api/v1/evaluations/evaluate** - Single candidate evaluation
+- **POST /api/v1/evaluations/batch** - Batch candidate evaluation
+- **GET /api/v1/evaluations/{evaluation_id}** - Get specific evaluation details
+- **GET /api/v1/evaluations** - List evaluations with filtering
+  - ✅ **job_id filtering available** - Can get job-specific evaluations
+  - ✅ **candidate_id filtering available** - Can get candidate-specific evaluations  
+  - ✅ **qualification_tier filtering** - Filter by qualification levels
+  - ✅ **min_score filtering** - Filter by minimum scores
+  - ✅ **Pagination support** - limit/offset parameters
+- **Frontend**: Can be used for job statistics calculation, evaluation components
 
-### **Analytics API** (12 endpoints - ✅ Complete)
+### **Analytics API** (12+ endpoints - ✅ Complete & Available)
+- **GET /api/v1/analytics/jobs/{job_id}/insights** - Job-specific analytics
+  - ✅ **Funnel metrics** - Applications, candidates, evaluations counts
+  - ✅ **Conversion rates** - Application to evaluation ratios
+  - ✅ **Quality metrics** - Average scores, qualified candidates
+  - ✅ **Performance statistics** - Success rates, confidence levels
+  - **Frontend**: Perfect for JobDetail statistics, useJobStats hook
 - Dashboard analytics and reporting
-- AI insights and recommendations
+- AI insights and recommendations  
 - Usage tracking and metrics
-- **Frontend**: AnalyticsDashboard, reporting components
+- **Frontend**: AnalyticsDashboard, reporting components, job statistics
 
 ---
 

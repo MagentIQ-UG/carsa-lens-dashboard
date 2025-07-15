@@ -10,9 +10,10 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 - ✅ **11/11 endpoints now available** - All core operations can use real API calls
 - 🎯 **Frontend updated to use real endpoints** - All hooks now integrated with live APIs
 - ✅ **Complete functionality enabled** - All candidate management features are now functional
-- 📋 **Only 3 endpoints still missing** - Non-critical features for enhanced functionality
+- � **URL enhancement system implemented** - Frontend handles URL extraction and validation
+- �📋 **Only 5 endpoints missing** - Non-critical features for enhanced functionality (2 core + 3 enhancements)
 
-## 📊 Complete Endpoint Analysis (11 Working + 3 Missing)
+## 📊 Complete Endpoint Analysis (11 Working + 5 Missing)
 
 ### ✅ **WORKING ENDPOINTS (11/11 - Fully Available!)**
 
@@ -77,7 +78,7 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 
 ---
 
-## ❌ Still Missing Endpoints (3 - Enhanced Features)
+## ❌ Still Missing Endpoints (5 - Enhanced Features)
 
 ### 🔥 HIGH PRIORITY (Dashboard Feature)
 
@@ -135,6 +136,63 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
 - **Priority**: ⚡ **Medium** - Management operations
 - **Expected Response**: 204 No Content on success
 
+### 🆕 RECOMMENDED (URL Enhancement Features)
+
+#### 15. **POST /api/v1/candidates/{candidate_id}/enhance-urls** - Extract URLs from CV Content
+- **Status**: ❌ **RECOMMENDED** - URL extraction from CV content not available
+- **Frontend Integration**: ProfileExtraction, URL enhancement utilities
+- **Priority**: 💡 **Low** - Quality of life improvement
+- **Current Workaround**: Frontend extracts URLs from available profile text
+- **Description**: Extract and populate social media URLs (LinkedIn, GitHub, portfolio, etc.) from the original CV text content
+- **Request Body**:
+  ```json
+  {
+    "extract_from_text": true,
+    "overwrite_existing": false
+  }
+  ```
+- **Expected Response**:
+  ```json
+  {
+    "extracted_urls": {
+      "linkedin": "https://linkedin.com/in/username",
+      "github": "https://github.com/username",
+      "portfolio_url": "https://portfolio.dev",
+      "website": "https://personal-site.com",
+      "twitter": "https://twitter.com/username",
+      "stackoverflow": "https://stackoverflow.com/users/123/username",
+      "behance": "https://behance.net/username",
+      "dribbble": "https://dribbble.com/username",
+      "other_urls": ["https://additional-url.com"]
+    },
+    "confidence_scores": {
+      "linkedin": 0.95,
+      "github": 0.88,
+      "portfolio_url": 0.78
+    },
+    "updated_profile": true
+  }
+  ```
+
+#### 16. **GET /api/v1/candidates/{candidate_id}/original-text** - Get Original CV Text Content
+- **Status**: ❌ **RECOMMENDED** - Original CV text content not exposed
+- **Frontend Integration**: URL extraction, profile enhancement
+- **Priority**: 💡 **Low** - Enables better frontend URL extraction
+- **Current Workaround**: Frontend uses available profile text fields
+- **Description**: Retrieve the original text content extracted from the CV for frontend processing
+- **Expected Response**:
+  ```json
+  {
+    "original_text": "Full CV text content here...",
+    "extraction_metadata": {
+      "file_type": "pdf",
+      "pages": 2,
+      "confidence": 0.92,
+      "extraction_date": "2024-01-01T00:00:00Z"
+    }
+  }
+  ```
+
 ---
 
 ## Expected Data Structures
@@ -161,7 +219,14 @@ This document outlines the comprehensive API endpoints needed for the fully-feat
       "phone": "string",
       "location": "string",
       "linkedin": "string",
-      "github": "string"
+      "github": "string",
+      "portfolio_url": "string",
+      "website": "string", 
+      "twitter": "string",
+      "stackoverflow": "string",
+      "behance": "string",
+      "dribbble": "string",
+      "other_urls": ["string"]
     },
     "work_experience": [
       {
@@ -432,3 +497,63 @@ The frontend team has created a **comprehensive, production-ready candidate mana
 - **Performance Optimized** - Proper caching and state management
 
 **Backend team can implement endpoints incrementally** - the frontend will automatically start using real APIs as they become available, replacing mock data seamlessly.
+
+---
+
+## 🔗 URL Enhancement Implementation Guide
+
+### **Current Frontend Implementation**
+The frontend has implemented a comprehensive URL enhancement system that works with existing endpoints:
+
+#### **URL Validation & Cleaning**
+- **Location**: `/src/lib/utils/profile-enhancement.ts`
+- **Functions**: 
+  - `validateAndNormalizeUrl()` - Validates and normalizes URLs, handles encoding issues
+  - `cleanProfileUrls()` - Cleans all URLs in a candidate profile
+  - `enhanceProfileWithUrls()` - Extracts URLs from text content
+  - `enhanceExistingProfile()` - Enhances existing profiles with missing URL data
+
+#### **Integration Points**
+- **Profile Loading**: `useCandidateProfile()` automatically enhances and cleans URLs
+- **Profile Saving**: `useUpdateCandidateProfile()` cleans URLs before sending to backend
+- **Profile Display**: All URL fields use validation before rendering links
+- **URL Extraction**: Uses regex patterns to extract URLs from available text content
+
+### **Backend URL Field Requirements**
+
+#### **Essential URL Fields** (Should be populated by backend)
+The `personal_info` object should include these URL fields:
+```json
+{
+  "linkedin": "https://linkedin.com/in/username",      // Required for most candidates
+  "github": "https://github.com/username",             // Important for tech candidates
+  "portfolio_url": "https://portfolio.dev",            // Important for designers/developers  
+  "website": "https://personal-site.com",              // General personal website
+  "twitter": "https://twitter.com/username",           // Social media presence
+  "stackoverflow": "https://stackoverflow.com/users/123", // Tech candidates
+  "behance": "https://behance.net/username",           // Designers
+  "dribbble": "https://dribbble.com/username",         // UI/UX designers
+  "other_urls": ["https://additional-url.com"]         // Any other relevant URLs
+}
+```
+
+#### **URL Extraction Approach** (Recommended for backend)
+1. **During CV Processing**: Extract URLs using regex patterns when processing CV text
+2. **Pattern Recognition**: Use the same patterns as frontend (`/src/lib/utils/url-extraction.ts`)
+3. **Validation**: Validate extracted URLs before storing
+4. **Confidence Scoring**: Assign confidence scores to extracted URLs
+5. **Fallback Strategy**: If backend doesn't populate URLs, frontend will extract from available text
+
+### **Migration Strategy**
+1. **Phase 1** (Current): Frontend handles all URL enhancement and validation
+2. **Phase 2** (Optional): Backend implements URL extraction during CV processing
+3. **Phase 3** (Optional): Backend provides `/enhance-urls` endpoint for retroactive enhancement
+
+### **URL Data Quality Standards**
+- **Valid Format**: All URLs must be valid HTTP/HTTPS URLs
+- **Platform Verification**: URLs should be verified to belong to the claimed platform
+- **Encoding**: URLs must be properly encoded (no spaces or special characters)
+- **Deduplication**: Remove duplicate URLs across different fields
+- **Privacy**: Respect candidate privacy preferences for social media links
+
+---

@@ -44,7 +44,6 @@ import { Progress } from '@/components/ui/progress';
 
 import { useExtractProfile } from '@/hooks/candidates';
 import { cn } from '@/lib/utils';
-import { extractProfileDataFromText } from '@/lib/utils/url-extraction';
 
 import { 
   type CandidateResponse

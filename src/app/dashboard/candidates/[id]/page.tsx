@@ -63,6 +63,7 @@ import {
   useDeleteCandidate
 } from '@/hooks/candidates';
 import { cn } from '@/lib/utils';
+import { validateAndNormalizeUrl } from '@/lib/utils/profile-enhancement';
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
 
@@ -569,134 +570,134 @@ function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any
             )}
             
             {/* Online Profiles */}
-            {(profile.personal_info?.linkedin || 
-              profile.personal_info?.github || 
-              profile.personal_info?.portfolio_url || 
-              profile.personal_info?.website || 
-              profile.personal_info?.twitter || 
-              profile.personal_info?.stackoverflow || 
-              profile.personal_info?.behance || 
-              profile.personal_info?.dribbble) && (
+            {(validateAndNormalizeUrl(profile.personal_info?.linkedin) || 
+              validateAndNormalizeUrl(profile.personal_info?.github) || 
+              validateAndNormalizeUrl(profile.personal_info?.portfolio_url) || 
+              validateAndNormalizeUrl(profile.personal_info?.website) || 
+              validateAndNormalizeUrl(profile.personal_info?.twitter) || 
+              validateAndNormalizeUrl(profile.personal_info?.stackoverflow) || 
+              validateAndNormalizeUrl(profile.personal_info?.behance) || 
+              validateAndNormalizeUrl(profile.personal_info?.dribbble)) && (
               <div className="pt-3 border-t border-gray-100">
                 <div className="text-xs font-medium text-gray-500 mb-2">Online Profiles</div>
                 <div className="space-y-2">
-                  {profile.personal_info.linkedin && (
+                  {validateAndNormalizeUrl(profile.personal_info.linkedin) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3 h-3 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-bold">in</span>
                       </div>
                       <a 
-                        href={profile.personal_info.linkedin}
+                        href={validateAndNormalizeUrl(profile.personal_info.linkedin)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.linkedin}
+                        title={validateAndNormalizeUrl(profile.personal_info.linkedin)}
                       >
                         LinkedIn
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.github && (
+                  {validateAndNormalizeUrl(profile.personal_info.github) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <Code className="h-3 w-3 text-gray-700 flex-shrink-0" />
                       <a 
-                        href={profile.personal_info.github}
+                        href={validateAndNormalizeUrl(profile.personal_info.github)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.github}
+                        title={validateAndNormalizeUrl(profile.personal_info.github)}
                       >
                         GitHub
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.portfolio_url && (
+                  {validateAndNormalizeUrl(profile.personal_info.portfolio_url) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <Briefcase className="h-3 w-3 text-purple-600 flex-shrink-0" />
                       <a 
-                        href={profile.personal_info.portfolio_url}
+                        href={validateAndNormalizeUrl(profile.personal_info.portfolio_url)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.portfolio_url}
+                        title={validateAndNormalizeUrl(profile.personal_info.portfolio_url)}
                       >
                         Portfolio
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.website && (
+                  {validateAndNormalizeUrl(profile.personal_info.website) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <Globe className="h-3 w-3 text-green-600 flex-shrink-0" />
                       <a 
-                        href={profile.personal_info.website}
+                        href={validateAndNormalizeUrl(profile.personal_info.website)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.website}
+                        title={validateAndNormalizeUrl(profile.personal_info.website)}
                       >
                         Website
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.twitter && (
+                  {validateAndNormalizeUrl(profile.personal_info.twitter) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3 h-3 bg-blue-400 rounded flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-bold">T</span>
                       </div>
                       <a 
-                        href={profile.personal_info.twitter}
+                        href={validateAndNormalizeUrl(profile.personal_info.twitter)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.twitter}
+                        title={validateAndNormalizeUrl(profile.personal_info.twitter)}
                       >
                         Twitter
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.stackoverflow && (
+                  {validateAndNormalizeUrl(profile.personal_info.stackoverflow) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3 h-3 bg-orange-500 rounded flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-bold">SO</span>
                       </div>
                       <a 
-                        href={profile.personal_info.stackoverflow}
+                        href={validateAndNormalizeUrl(profile.personal_info.stackoverflow)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.stackoverflow}
+                        title={validateAndNormalizeUrl(profile.personal_info.stackoverflow)}
                       >
                         StackOverflow
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.behance && (
+                  {validateAndNormalizeUrl(profile.personal_info.behance) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3 h-3 bg-blue-500 rounded flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-bold">Be</span>
                       </div>
                       <a 
-                        href={profile.personal_info.behance}
+                        href={validateAndNormalizeUrl(profile.personal_info.behance)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.behance}
+                        title={validateAndNormalizeUrl(profile.personal_info.behance)}
                       >
                         Behance
                       </a>
                     </div>
                   )}
-                  {profile.personal_info.dribbble && (
+                  {validateAndNormalizeUrl(profile.personal_info.dribbble) && (
                     <div className="flex items-center gap-2 min-w-0">
                       <div className="w-3 h-3 bg-pink-500 rounded flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-[8px] font-bold">Dr</span>
                       </div>
                       <a 
-                        href={profile.personal_info.dribbble}
+                        href={validateAndNormalizeUrl(profile.personal_info.dribbble)}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 truncate"
-                        title={profile.personal_info.dribbble}
+                        title={validateAndNormalizeUrl(profile.personal_info.dribbble)}
                       >
                         Dribbble
                       </a>

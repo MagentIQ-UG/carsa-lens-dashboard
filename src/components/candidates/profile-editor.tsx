@@ -39,6 +39,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Textarea } from '@/components/ui/textarea';
 
 import { useUpdateCandidate } from '@/hooks/candidates';
+import { cleanProfileUrls } from '@/lib/utils/profile-enhancement';
 import { cn } from '@/lib/utils';
 
 import { 
@@ -213,7 +214,7 @@ export function ProfileEditor({
         email: data.personal_info.email || undefined,
         phone: data.personal_info.phone || undefined,
         location: data.personal_info.location || undefined,
-        profile_data: {
+        profile_data: cleanProfileUrls({
           personal_info: data.personal_info,
           work_experience: data.work_experience,
           education: data.education,
@@ -221,7 +222,7 @@ export function ProfileEditor({
           certifications: data.certifications,
           summary: data.summary,
           achievements: data.achievements,
-        },
+        }),
       };
 
       const result = await updateCandidateMutation.mutateAsync({

@@ -10,6 +10,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 
 import { apiClient, getAccessToken } from '@/lib/api/client';
+import { cleanProfileUrls, enhanceExistingProfile } from '@/lib/utils/profile-enhancement';
 import type {
   CandidateResponse,
 } from '@/types/api';
@@ -660,13 +661,16 @@ export function useCandidateProfile(candidateId: string) {
     queryKey: candidateKeys.profile(candidateId),
     queryFn: async () => {
       try {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('🔍 Fetching candidate profile for ID:', candidateId);
-        }
         const response = await apiClient.get(ENDPOINTS.candidateProfile(candidateId));
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('✅ Candidate Profile API response:', response.data);
+        
+        // Enhance and clean URLs in the profile data
+        if (response.data?.profile_data) {
+          // First enhance with any missing URLs from text content
+          response.data.profile_data = enhanceExistingProfile(response.data.profile_data);
+          // Then clean and validate all URLs
+          response.data.profile_data = cleanProfileUrls(response.data.profile_data);
         }
+        
         return response.data;
       } catch (error) {
         console.error(`Failed to fetch candidate profile ${candidateId}:`, error);
@@ -686,7 +690,10 @@ export function useUpdateCandidateProfile() {
   return useMutation({
     mutationFn: async (data: { candidateId: string; profileData: any }) => {
       try {
-        const response = await apiClient.put(ENDPOINTS.candidateProfile(data.candidateId), data.profileData);
+        // Clean and validate URLs before sending to backend
+        const cleanedProfileData = cleanProfileUrls(data.profileData);
+        
+        const response = await apiClient.put(ENDPOINTS.candidateProfile(data.candidateId), cleanedProfileData);
         return response.data;
       } catch (error) {
         console.error(`Failed to update candidate profile ${data.candidateId}:`, error);

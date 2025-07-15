@@ -42,7 +42,8 @@ import {
   Activity,
   Bookmark,
   Send,
-  X
+  X,
+  Globe
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -494,6 +495,34 @@ function CandidateDetailTabs({
 
 // Overview Tab Component
 function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any; candidate: any }) {
+  // Helper function to find current role with better logic
+  const getCurrentRole = (workExperience: any[]) => {
+    if (!workExperience || workExperience.length === 0) return null;
+    
+    // First, try to find a role explicitly marked as current
+    let currentRole = workExperience.find((exp: any) => exp.is_current === true);
+    
+    // If no explicit current role, try the most recent role without an end date
+    if (!currentRole) {
+      currentRole = workExperience.find((exp: any) => !exp.end_date || exp.end_date === '');
+    }
+    
+    // If still no current role, take the most recent role (first in the array assuming it's sorted)
+    if (!currentRole) {
+      // Sort by start_date descending to get the most recent
+      const sortedExperience = [...workExperience].sort((a, b) => {
+        const dateA = new Date(a.start_date || '1900-01-01');
+        const dateB = new Date(b.start_date || '1900-01-01');
+        return dateB.getTime() - dateA.getTime();
+      });
+      currentRole = sortedExperience[0];
+    }
+    
+    return currentRole;
+  };
+
+  const currentRole = getCurrentRole(profile.work_experience || []);
+
   return (
     <div className="space-y-6">
       {/* Summary Section */}
@@ -519,21 +548,161 @@ function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any
           </CardHeader>
           <CardContent className="space-y-3">
             {profile.personal_info?.email && (
-              <div className="flex items-center gap-3">
-                <Mail className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-900">{profile.personal_info.email}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <Mail className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-900 break-all truncate" title={profile.personal_info.email}>
+                  {profile.personal_info.email}
+                </span>
               </div>
             )}
             {profile.personal_info?.phone && (
-              <div className="flex items-center gap-3">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-900">{profile.personal_info.phone}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <Phone className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-900 break-all">{profile.personal_info.phone}</span>
               </div>
             )}
             {profile.personal_info?.location && (
-              <div className="flex items-center gap-3">
-                <MapPin className="h-4 w-4 text-gray-400" />
-                <span className="text-sm text-gray-900">{profile.personal_info.location}</span>
+              <div className="flex items-center gap-3 min-w-0">
+                <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm text-gray-900 break-words">{profile.personal_info.location}</span>
+              </div>
+            )}
+            
+            {/* Online Profiles */}
+            {(profile.personal_info?.linkedin || 
+              profile.personal_info?.github || 
+              profile.personal_info?.portfolio_url || 
+              profile.personal_info?.website || 
+              profile.personal_info?.twitter || 
+              profile.personal_info?.stackoverflow || 
+              profile.personal_info?.behance || 
+              profile.personal_info?.dribbble) && (
+              <div className="pt-3 border-t border-gray-100">
+                <div className="text-xs font-medium text-gray-500 mb-2">Online Profiles</div>
+                <div className="space-y-2">
+                  {profile.personal_info.linkedin && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 bg-blue-600 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-bold">in</span>
+                      </div>
+                      <a 
+                        href={profile.personal_info.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.linkedin}
+                      >
+                        LinkedIn
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.github && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Code className="h-3 w-3 text-gray-700 flex-shrink-0" />
+                      <a 
+                        href={profile.personal_info.github}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.github}
+                      >
+                        GitHub
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.portfolio_url && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Briefcase className="h-3 w-3 text-purple-600 flex-shrink-0" />
+                      <a 
+                        href={profile.personal_info.portfolio_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.portfolio_url}
+                      >
+                        Portfolio
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.website && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Globe className="h-3 w-3 text-green-600 flex-shrink-0" />
+                      <a 
+                        href={profile.personal_info.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.website}
+                      >
+                        Website
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.twitter && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 bg-blue-400 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-bold">T</span>
+                      </div>
+                      <a 
+                        href={profile.personal_info.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.twitter}
+                      >
+                        Twitter
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.stackoverflow && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 bg-orange-500 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-bold">SO</span>
+                      </div>
+                      <a 
+                        href={profile.personal_info.stackoverflow}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.stackoverflow}
+                      >
+                        StackOverflow
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.behance && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 bg-blue-500 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-bold">Be</span>
+                      </div>
+                      <a 
+                        href={profile.personal_info.behance}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.behance}
+                      >
+                        Behance
+                      </a>
+                    </div>
+                  )}
+                  {profile.personal_info.dribbble && (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-3 h-3 bg-pink-500 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-white text-[8px] font-bold">Dr</span>
+                      </div>
+                      <a 
+                        href={profile.personal_info.dribbble}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 truncate"
+                        title={profile.personal_info.dribbble}
+                      >
+                        Dribbble
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </CardContent>
@@ -550,8 +719,8 @@ function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any
           <CardContent>
             {profile.education?.[0] ? (
               <div className="space-y-2">
-                <p className="font-medium text-gray-900">{profile.education[0].degree}</p>
-                <p className="text-sm text-gray-600">{profile.education[0].institution}</p>
+                <p className="font-medium text-gray-900 break-words">{profile.education[0].degree}</p>
+                <p className="text-sm text-gray-600 break-words">{profile.education[0].institution}</p>
                 <p className="text-xs text-gray-500">{profile.education[0].end_date}</p>
               </div>
             ) : (
@@ -569,18 +738,34 @@ function CandidateOverviewTab({ profile, candidate: _candidate }: { profile: any
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {profile.work_experience?.find((exp: any) => exp.is_current) ? (
+            {currentRole ? (
               <div className="space-y-2">
-                <p className="font-medium text-gray-900">
-                  {profile.work_experience.find((exp: any) => exp.is_current).title}
+                <p className="font-medium text-gray-900 break-words">
+                  {currentRole.title}
                 </p>
-                <p className="text-sm text-gray-600">
-                  {profile.work_experience.find((exp: any) => exp.is_current).company}
+                <p className="text-sm text-gray-600 break-words">
+                  {currentRole.company}
                 </p>
-                <p className="text-xs text-gray-500">Current Position</p>
+                {currentRole.location && (
+                  <p className="text-xs text-gray-500 flex items-center gap-1 min-w-0">
+                    <MapPin className="h-3 w-3 flex-shrink-0" />
+                    <span className="break-words">{currentRole.location}</span>
+                  </p>
+                )}
+                <p className="text-xs text-gray-500">
+                  {currentRole.is_current ? 'Current Position' : 'Most Recent Position'}
+                </p>
+                {currentRole.start_date && (
+                  <p className="text-xs text-gray-500 break-words">
+                    {currentRole.is_current || !currentRole.end_date 
+                      ? `Started ${new Date(currentRole.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                      : `${new Date(currentRole.start_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })} - ${new Date(currentRole.end_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+                    }
+                  </p>
+                )}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No current role specified</p>
+              <p className="text-sm text-gray-500">No work experience available</p>
             )}
           </CardContent>
         </Card>

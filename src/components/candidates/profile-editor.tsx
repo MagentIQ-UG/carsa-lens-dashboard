@@ -53,6 +53,12 @@ const PersonalInfoSchema = z.object({
   location: z.string().optional().or(z.literal('')),
   linkedin: z.string().url('Invalid LinkedIn URL').optional().or(z.literal('')),
   github: z.string().url('Invalid GitHub URL').optional().or(z.literal('')),
+  portfolio_url: z.string().url('Invalid portfolio URL').optional().or(z.literal('')),
+  website: z.string().url('Invalid website URL').optional().or(z.literal('')),
+  twitter: z.string().url('Invalid Twitter URL').optional().or(z.literal('')),
+  stackoverflow: z.string().url('Invalid StackOverflow URL').optional().or(z.literal('')),
+  behance: z.string().url('Invalid Behance URL').optional().or(z.literal('')),
+  dribbble: z.string().url('Invalid Dribbble URL').optional().or(z.literal('')),
 });
 
 const WorkExperienceSchema = z.object({
@@ -149,6 +155,12 @@ export function ProfileEditor({
         location: candidate.profile_data?.personal_info?.location || '',
         linkedin: candidate.profile_data?.personal_info?.linkedin || '',
         github: candidate.profile_data?.personal_info?.github || '',
+        portfolio_url: candidate.profile_data?.personal_info?.portfolio_url || '',
+        website: candidate.profile_data?.personal_info?.website || '',
+        twitter: candidate.profile_data?.personal_info?.twitter || '',
+        stackoverflow: candidate.profile_data?.personal_info?.stackoverflow || '',
+        behance: candidate.profile_data?.personal_info?.behance || '',
+        dribbble: candidate.profile_data?.personal_info?.dribbble || '',
       },
       work_experience: candidate.profile_data?.work_experience || [],
       education: candidate.profile_data?.education || [],
@@ -376,6 +388,114 @@ export function ProfileEditor({
                 type="url"
                 placeholder="https://github.com/username"
                 error={errors.personal_info?.github?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Portfolio Website
+          </label>
+          <Controller
+            name="personal_info.portfolio_url"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://yourportfolio.com"
+                error={errors.personal_info?.portfolio_url?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Personal Website
+          </label>
+          <Controller
+            name="personal_info.website"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://yourwebsite.com"
+                error={errors.personal_info?.website?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Twitter Profile
+          </label>
+          <Controller
+            name="personal_info.twitter"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://twitter.com/username"
+                error={errors.personal_info?.twitter?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            StackOverflow Profile
+          </label>
+          <Controller
+            name="personal_info.stackoverflow"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://stackoverflow.com/users/..."
+                error={errors.personal_info?.stackoverflow?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Behance Profile
+          </label>
+          <Controller
+            name="personal_info.behance"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://behance.net/username"
+                error={errors.personal_info?.behance?.message}
+                disabled={readonly}
+              />
+            )}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Dribbble Profile
+          </label>
+          <Controller
+            name="personal_info.dribbble"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                type="url"
+                placeholder="https://dribbble.com/username"
+                error={errors.personal_info?.dribbble?.message}
                 disabled={readonly}
               />
             )}

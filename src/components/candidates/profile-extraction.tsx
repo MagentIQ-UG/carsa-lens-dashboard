@@ -44,6 +44,7 @@ import { Progress } from '@/components/ui/progress';
 
 import { useExtractProfile } from '@/hooks/candidates';
 import { cn } from '@/lib/utils';
+import { extractProfileDataFromText } from '@/lib/utils/url-extraction';
 
 import { 
   type CandidateResponse
@@ -82,6 +83,14 @@ const EXTRACTION_STEPS: ExtractionStep[] = [
     status: 'pending',
     progress: 0,
     icon: <User className="h-4 w-4" />
+  },
+  {
+    id: 'urls_social',
+    label: 'URLs & Social Profiles',
+    description: 'Extracting LinkedIn, GitHub, portfolio, and other URLs',
+    status: 'pending',
+    progress: 0,
+    icon: <Activity className="h-4 w-4" />
   },
   {
     id: 'work_experience',

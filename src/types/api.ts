@@ -530,6 +530,13 @@ export interface CandidateProfileData {
     location?: string;
     linkedin?: string;
     github?: string;
+    portfolio_url?: string;
+    website?: string;
+    twitter?: string;
+    stackoverflow?: string;
+    behance?: string;
+    dribbble?: string;
+    other_urls?: string[];
   };
   work_experience: WorkExperience[];
   education: Education[];

@@ -523,16 +523,31 @@ export function useExtractProfile() {
         profile_data: {
           personal_info: {
             full_name: 'Mock Candidate',
-            email: 'mock@example.com',
+            email: 'mock.candidate@verylongcompanyname.com',
             phone: '+1234567890',
             location: 'New York, NY',
+            linkedin: 'https://linkedin.com/in/mockcandidate',
+            github: 'https://github.com/mockcandidate',
+            portfolio_url: 'https://mockcandidate.dev',
+            website: 'https://mockcandidate.com',
+            twitter: 'https://twitter.com/mockcandidate',
+            stackoverflow: 'https://stackoverflow.com/users/123456/mockcandidate',
           },
           work_experience: [
             {
+              title: 'Senior Software Engineer',
+              company: 'Tech Innovation Inc',
+              location: 'San Francisco, CA',
+              start_date: '2023-01-01',
+              is_current: true,
+              description: 'Leading frontend development team, architecting scalable React applications',
+            },
+            {
               title: 'Software Engineer',
               company: 'Tech Corp',
+              location: 'New York, NY',
               start_date: '2020-01-01',
-              end_date: '2023-12-31',
+              end_date: '2022-12-31',
               is_current: false,
               description: 'Developed web applications using React and Node.js',
             },

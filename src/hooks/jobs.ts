@@ -352,7 +352,7 @@ export function useJobStats(jobId: string) {
   return useQuery({
     queryKey: [...jobKeys.detail(jobId), 'stats'],
     queryFn: async () => {
-      console.log(`Getting job statistics for job: ${jobId}`);
+      // Get job statistics for the specified job
       
       try {
         // Use the existing analytics endpoint for job statistics

@@ -1,47 +1,105 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CARSA Lens Dashboard
 
-## Getting Started
+**Enterprise-grade AI-powered recruitment dashboard** built with Next.js 15, React 19, and TypeScript.
 
-First, run the development server:
+## 🚀 Quick Start
 
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+
+### Development Setup
 ```bash
+# Clone and install dependencies
+git clone <repository-url>
+cd carsa-lens-dashboard
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Start development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Frontend
+- **Framework:** Next.js 15 (App Router)
+- **Language:** TypeScript (strict mode)
+- **Styling:** Tailwind CSS
+- **State Management:** Zustand + TanStack Query
+- **Forms:** React Hook Form + Zod validation
+- **UI Components:** Custom components with Tailwind
+- **Icons:** Lucide React
+- **Rich Text:** Tiptap editor
 
-## Learn More
+### Development
+- **Testing:** Jest + React Testing Library + Playwright
+- **Linting:** ESLint + Prettier
+- **Git Hooks:** Husky + lint-staged
+- **API Types:** OpenAPI Generator
 
-To learn more about Next.js, take a look at the following resources:
+## 📁 Project Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+src/
+├── app/                    # Next.js App Router pages
+├── components/            # Reusable UI components
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utilities and configurations
+├── stores/               # Zustand stores
+└── types/                # TypeScript type definitions
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🔧 Available Scripts
 
-## Deploy on Vercel
+- `npm run dev` - Start development server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server  
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript compiler
+- `npm run test` - Run Jest tests
+- `npm run test:e2e` - Run Playwright E2E tests
+- `npm run generate-api-types` - Generate API types from OpenAPI spec
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🧪 Testing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Unit Tests:** Jest with React Testing Library
+- **E2E Tests:** Playwright
+- **Comprehensive Test Suite:** `./test_comprehensive.sh`
+- **API Verification:** `./verify_api_endpoints.sh`
 
-## Project Documentation
+## 📖 Documentation
 
-- **[COMPLETE_FIX_SUMMARY.md](./COMPLETE_FIX_SUMMARY.md)** - Comprehensive summary of all fixes applied to the project
-- **[TODO.md](./TODO.md)** - Current project tasks and requirements
-- **[docs/](./docs/)** - Frontend documentation and design strategy
+- **[TODO.md](./TODO.md)** - Development roadmap and current tasks
+- **[docs/](./docs/)** - Detailed documentation and design specs
+- **API Integration Guides** - See `*_SUMMARY.md` files
 
-## Testing
+## 🔒 Security
 
-- **[test_comprehensive.sh](./test_comprehensive.sh)** - Comprehensive test suite for authentication, UI, and API functionality
-- **[verify_api_endpoints.sh](./verify_api_endpoints.sh)** - API endpoint verification script
+- Content Security Policy (CSP) headers
+- XSS protection
+- CSRF protection
+- Secure authentication flow
+
+## 🚀 Deployment
+
+The application is optimized for deployment on Vercel:
+
+```bash
+npm run build
+npm run start
+```
+
+For other platforms, ensure Node.js 18+ environment with the above commands.
+
+## 🤝 Contributing
+
+1. Follow the established code style (ESLint + Prettier)
+2. Write tests for new features
+3. Update documentation as needed
+4. Use conventional commit messages

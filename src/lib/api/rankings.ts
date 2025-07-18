@@ -19,7 +19,7 @@ export const rankingsApi = {
 
   // Note: Backend doesn't provide a general list endpoint
   // Rankings must be fetched by job ID using getJobRankings
-  listRankings: (filters?: RankingFilters): Promise<RankingResponse[]> => {
+  listRankings: (_filters?: RankingFilters): Promise<RankingResponse[]> => {
     throw new Error('Use getJobRankings instead - backend requires job_id for listing rankings');
   },
 

@@ -56,7 +56,6 @@ apiClient.interceptors.request.use(
     const token = getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Auth token added to request:', config.url);
     } else {
       console.warn('⚠️ No auth token available for request:', config.url);
       console.warn('🔍 Auth store state:', getAuthStore ? getAuthStore() : 'Auth store not initialized');

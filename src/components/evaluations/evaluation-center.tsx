@@ -12,11 +12,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
-  ExclamationTriangleIcon,
   BoltIcon,
   UserIcon,
-  DocumentTextIcon,
-  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 
 import { Card } from '@/components/ui/card';
@@ -25,16 +22,13 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { 
   useEvaluateCandidate, 
-  useBatchEvaluate, 
-  useEvaluationComparison 
+  useBatchEvaluate 
 } from '@/hooks/evaluations';
 import { useCandidates } from '@/hooks/candidates';
-import { useJobs } from '@/hooks/jobs';
 import type { 
   EvaluationProgress, 
   EvaluationSession, 
   EvaluationResponse,
-  CandidateResponse,
   ProcessingStatus
 } from '@/types/api';
 
@@ -46,7 +40,7 @@ interface CandidateSelectorProps {
 }
 
 export function CandidateSelector({
-  jobId,
+  jobId: _jobId,
   selectedCandidates,
   onSelectionChange,
   maxSelection = 10

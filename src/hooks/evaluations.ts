@@ -37,17 +37,14 @@ export function useEvaluations(filters?: EvaluationFilters) {
   return useQuery({
     queryKey: evaluationKeys.list(filters || {}),
     queryFn: async () => {
-      console.log('🔍 Fetching evaluations with filters:', filters);
       // Temporary: Return empty array to test auth without API calls
       // TODO: Remove this mock when API is fixed
       if (process.env.NEXT_PUBLIC_MOCK_EVALUATIONS === 'true') {
-        console.log('📋 Using mock evaluations data');
         return [];
       }
       try {
         return await evaluationsApi.listEvaluations(filters);
       } catch (error: any) {
-        console.error('❌ Evaluations query failed:', error);
         throw error;
       }
     },
@@ -255,7 +252,7 @@ export function useReEvaluate() {
   return useMutation<BaseResponse<EvaluationResponse>, Error, { evaluationId: string; customInstructions?: string }>({
     mutationFn: ({ evaluationId, customInstructions }) =>
       evaluationsApi.reEvaluateCandidate(evaluationId, customInstructions),
-    onSuccess: (data, variables) => {
+    onSuccess: (data, _variables) => {
       toast.success('Re-evaluation completed successfully');
       
       // Invalidate and update cache

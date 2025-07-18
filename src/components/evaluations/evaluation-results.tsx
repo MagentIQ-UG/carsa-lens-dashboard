@@ -7,7 +7,6 @@
 
 import { useState } from 'react';
 import { 
-  TrophyIcon,
   ChartBarIcon,
   DocumentTextIcon,
   LightBulbIcon,
@@ -21,7 +20,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { EvaluationResponse, CriterionScore, QualificationTier } from '@/types/api';
+import type { EvaluationResponse, QualificationTier } from '@/types/api';
 
 interface EvaluationResultsProps {
   evaluation: EvaluationResponse;

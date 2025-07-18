@@ -26,7 +26,6 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { useJob } from '@/hooks/jobs';
 import { useCandidates } from '@/hooks/candidates';
 import { useEvaluations } from '@/hooks/evaluations';
-import { QualificationTier } from '@/types/api';
 
 interface CandidateEvaluationSummary {
   id: string;
@@ -34,10 +33,11 @@ interface CandidateEvaluationSummary {
   email?: string;
   status: 'pending' | 'evaluating' | 'completed' | 'failed';
   score?: number;
-  qualification_tier?: QualificationTier;
+  qualification_tier?: string; // API returns string, not enum
   evaluated_at?: string;
   strengths?: string[];
   gaps?: string[];
+  hasEvaluation?: boolean;
 }
 
 export default function JobEvaluationDetailsPage() {
@@ -47,30 +47,45 @@ export default function JobEvaluationDetailsPage() {
 
   const { data: job, isLoading: jobLoading } = useJob(jobId);
   const { data: candidatesData, isLoading: candidatesLoading } = useCandidates();
-  const { data: evaluationsData, isLoading: evaluationsLoading } = useEvaluations({
+  const { data: evaluationsData, isLoading: evaluationsLoading, refetch: refetchEvaluations } = useEvaluations({
     job_id: jobId,
   });
+  // Also fetch all evaluations to debug filtering issues - but only the list version
+  const { data: allEvaluationsData } = useEvaluations();
 
   // Extract candidates and evaluations arrays from response
   const candidates = candidatesData?.items || [];
   const evaluations = evaluationsData || [];
+  const allEvaluations = allEvaluationsData || [];
 
   // Calculate job-specific candidates and their evaluation status
+  // Use all evaluations and filter client-side as a fallback in case server-side filtering isn't working
+  const relevantEvaluations = allEvaluations.filter(e => e.job_id === jobId);
+  const evaluationsToUse = evaluations.length > 0 ? evaluations : relevantEvaluations;
+
   const jobCandidates: CandidateEvaluationSummary[] = candidates
     .map(candidate => {
-      const evaluation = evaluations.find(evaluation => evaluation.candidate_id === candidate.id);
+      // Find evaluation for this candidate AND this specific job
+      const evaluation = evaluationsToUse.find(evaluation => 
+        evaluation.candidate_id === candidate.id && evaluation.job_id === jobId
+      );
       return {
         id: candidate.id,
         name: `${candidate.first_name} ${candidate.last_name}`,
         email: candidate.email,
-        status: evaluation ? 'completed' : 'pending',
+        status: (evaluation ? 'completed' : 'pending') as 'pending' | 'evaluating' | 'completed' | 'failed',
         score: evaluation?.overall_score,
-        qualification_tier: evaluation?.qualification_tier,
+        qualification_tier: evaluation?.qualification_tier, // API returns string
         evaluated_at: evaluation?.created_at,
-        strengths: evaluation?.strengths,
-        gaps: evaluation?.gaps,
+        // Note: strengths and gaps are not available in list response
+        // These would need to be fetched separately if needed
+        strengths: undefined, 
+        gaps: undefined,
+        hasEvaluation: !!evaluation,
       };
     });
+    // Note: Showing all candidates for now. In a real app, you might want to filter 
+    // by candidates who have applied to this specific job
 
   const evaluatedCandidates = jobCandidates.filter(c => c.status === 'completed');
   const pendingCandidates = jobCandidates.filter(c => c.status === 'pending');
@@ -80,10 +95,10 @@ export default function JobEvaluationDetailsPage() {
     : 0;
 
   const tierCounts = {
-    highly_qualified: evaluatedCandidates.filter(c => c.qualification_tier === QualificationTier.HIGHLY_QUALIFIED).length,
-    qualified: evaluatedCandidates.filter(c => c.qualification_tier === QualificationTier.QUALIFIED).length,
-    partially_qualified: evaluatedCandidates.filter(c => c.qualification_tier === QualificationTier.PARTIALLY_QUALIFIED).length,
-    not_qualified: evaluatedCandidates.filter(c => c.qualification_tier === QualificationTier.NOT_QUALIFIED).length,
+    highly_qualified: evaluatedCandidates.filter(c => c.qualification_tier === 'highly_qualified').length,
+    qualified: evaluatedCandidates.filter(c => c.qualification_tier === 'qualified').length,
+    partially_qualified: evaluatedCandidates.filter(c => c.qualification_tier === 'partially_qualified').length,
+    not_qualified: evaluatedCandidates.filter(c => c.qualification_tier === 'not_qualified').length,
   };
 
   const getStatusColor = (status: string) => {
@@ -96,32 +111,32 @@ export default function JobEvaluationDetailsPage() {
     }
   };
 
-  const getTierColor = (tier?: QualificationTier) => {
+  const getTierColor = (tier?: string) => {
     switch (tier) {
-      case QualificationTier.HIGHLY_QUALIFIED: return 'text-green-600 bg-green-50';
-      case QualificationTier.QUALIFIED: return 'text-blue-600 bg-blue-50';
-      case QualificationTier.PARTIALLY_QUALIFIED: return 'text-yellow-600 bg-yellow-50';
-      case QualificationTier.NOT_QUALIFIED: return 'text-red-600 bg-red-50';
+      case 'highly_qualified': return 'text-green-600 bg-green-50';
+      case 'qualified': return 'text-blue-600 bg-blue-50';
+      case 'partially_qualified': return 'text-yellow-600 bg-yellow-50';
+      case 'not_qualified': return 'text-red-600 bg-red-50';
       default: return 'text-gray-600 bg-gray-50';
     }
   };
 
-  const getTierIcon = (tier?: QualificationTier) => {
+  const getTierIcon = (tier?: string) => {
     switch (tier) {
-      case QualificationTier.HIGHLY_QUALIFIED: return <StarIcon className="w-4 h-4" />;
-      case QualificationTier.QUALIFIED: return <TrophyIcon className="w-4 h-4" />;
-      case QualificationTier.PARTIALLY_QUALIFIED: return <CheckCircleIcon className="w-4 h-4" />;
-      case QualificationTier.NOT_QUALIFIED: return <ExclamationTriangleIcon className="w-4 h-4" />;
+      case 'highly_qualified': return <StarIcon className="w-4 h-4" />;
+      case 'qualified': return <TrophyIcon className="w-4 h-4" />;
+      case 'partially_qualified': return <CheckCircleIcon className="w-4 h-4" />;
+      case 'not_qualified': return <ExclamationTriangleIcon className="w-4 h-4" />;
       default: return <ClockIcon className="w-4 h-4" />;
     }
   };
 
-  const getTierLabel = (tier?: QualificationTier) => {
+  const getTierLabel = (tier?: string) => {
     switch (tier) {
-      case QualificationTier.HIGHLY_QUALIFIED: return 'Highly Qualified';
-      case QualificationTier.QUALIFIED: return 'Qualified';
-      case QualificationTier.PARTIALLY_QUALIFIED: return 'Partially Qualified';
-      case QualificationTier.NOT_QUALIFIED: return 'Not Qualified';
+      case 'highly_qualified': return 'Highly Qualified';
+      case 'qualified': return 'Qualified';
+      case 'partially_qualified': return 'Partially Qualified';
+      case 'not_qualified': return 'Not Qualified';
       default: return 'Pending';
     }
   };
@@ -183,6 +198,15 @@ export default function JobEvaluationDetailsPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                onClick={() => refetchEvaluations()}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <ArrowLeftIcon className="w-4 h-4 rotate-45" />
+                Refresh Data
+              </Button>
               <Button
                 onClick={() => router.push(`/dashboard/evaluations/batch?job=${jobId}`)}
                 className="flex items-center gap-2"

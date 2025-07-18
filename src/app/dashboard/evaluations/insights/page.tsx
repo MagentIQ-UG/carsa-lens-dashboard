@@ -300,7 +300,7 @@ export default function EvaluationInsightsPage() {
                             const job = jobs.find(j => j.id === evaluation.job_id);
                             
                             return (
-                              <tr key={evaluation.id} className="border-b border-gray-100 hover:bg-gray-50">
+                              <tr key={evaluation.evaluation_id} className="border-b border-gray-100 hover:bg-gray-50">
                                 <td className="py-3 px-4">
                                   <div>
                                     <p className="font-medium text-gray-900">
@@ -342,7 +342,7 @@ export default function EvaluationInsightsPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => router.push(`/dashboard/evaluations/${evaluation.id}`)}
+                                    onClick={() => router.push(`/dashboard/evaluations/${evaluation.evaluation_id}`)}
                                     className="flex items-center gap-1"
                                   >
                                     <EyeIcon className="h-3 w-3" />

@@ -597,21 +597,41 @@ export interface BatchEvaluateRequest {
 }
 
 export interface EvaluationResponse {
-  id: string;
+  evaluation_id: string; // API uses evaluation_id, not id
+  database_id: string;
   candidate_id: string;
   job_id: string;
   scorecard_id: string;
   overall_score?: number;
-  qualification_tier?: QualificationTier;
-  scores: Record<string, CriterionScore>;
+  qualification_tier?: string; // API returns string, not enum
   strengths: string[];
   gaps: string[];
   interview_focus_areas: string[];
   recommendations: string;
   confidence_level: number;
-  ai_model: string;
-  evaluation_metadata: Record<string, unknown>;
+  has_low_confidence_evaluations?: boolean;
+  missing_must_have_criteria?: boolean;
   created_at: string;
+}
+
+// List response item (different from full response)
+export interface EvaluationListResponse {
+  evaluation_id: string;
+  candidate_id: string;
+  job_id: string;
+  overall_score?: number;
+  qualification_tier?: string;
+  confidence_level: number;
+  created_at: string;
+}
+
+// Paginated response wrapper
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  limit: number;
+  offset: number;
+  has_more: boolean;
 }
 
 export interface CriterionScore {

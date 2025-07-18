@@ -43,7 +43,9 @@ export function useEvaluations(filters?: EvaluationFilters) {
         return [];
       }
       try {
-        return await evaluationsApi.listEvaluations(filters);
+        const response = await evaluationsApi.listEvaluations(filters);
+        // Extract the items array from the paginated response
+        return response.data?.items || [];
       } catch (error: any) {
         throw error;
       }
@@ -95,7 +97,7 @@ export function useEvaluateCandidate() {
       // Update cached evaluation
       if (data.data) {
         queryClient.setQueryData(
-          evaluationKeys.detail(data.data.id),
+          evaluationKeys.detail(data.data.evaluation_id),
           data
         );
       }
@@ -259,7 +261,7 @@ export function useReEvaluate() {
       queryClient.invalidateQueries({ queryKey: evaluationKeys.all });
       if (data.data) {
         queryClient.setQueryData(
-          evaluationKeys.detail(data.data.id),
+          evaluationKeys.detail(data.data.evaluation_id),
           data
         );
       }
@@ -290,27 +292,35 @@ export function useEvaluationComparison() {
       // Fetch all evaluations for the candidates
       const evaluationPromises = candidateIds.map(async (candidateId) => {
         const filters: EvaluationFilters = { candidate_id: candidateId, job_id: jobId };
-        const evaluations = await evaluationsApi.listEvaluations(filters);
-        return evaluations[0]; // Get the most recent evaluation
+        const response = await evaluationsApi.listEvaluations(filters);
+        const evaluationList = response.data?.items?.[0]; // Get the most recent evaluation from paginated response
+        
+        // If we found an evaluation, get the full details
+        if (evaluationList?.evaluation_id) {
+          const detailResponse = await evaluationsApi.getEvaluation(evaluationList.evaluation_id);
+          return detailResponse.data;
+        }
+        return null;
       });
 
       const evaluations = await Promise.all(evaluationPromises);
+      const validEvaluations = evaluations.filter((evaluation): evaluation is NonNullable<typeof evaluation> => evaluation != null);
       
       // Build comparison data
       const comparisonData: EvaluationComparison = {
         candidate_ids: candidateIds,
         job_id: jobId,
-        evaluations: evaluations.filter(Boolean),
+        evaluations: validEvaluations,
         comparison_matrix: [],
-        strengths_comparison: evaluations.map(evaluation => ({
+        strengths_comparison: validEvaluations.map((evaluation) => ({
           candidate_id: evaluation.candidate_id,
           strengths: evaluation.strengths || [],
         })),
-        gaps_comparison: evaluations.map(evaluation => ({
+        gaps_comparison: validEvaluations.map((evaluation) => ({
           candidate_id: evaluation.candidate_id,
           gaps: evaluation.gaps || [],
         })),
-        recommendations: evaluations.map(evaluation => ({
+        recommendations: validEvaluations.map((evaluation) => ({
           candidate_id: evaluation.candidate_id,
           recommendation: evaluation.recommendations || '',
           reasoning: `Overall score: ${evaluation.overall_score || 0}%, Tier: ${evaluation.qualification_tier || 'Unknown'}`,

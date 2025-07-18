@@ -2,9 +2,11 @@ import {
   EvaluateRequest,
   BatchEvaluateRequest,
   EvaluationResponse,
+  EvaluationListResponse,
   BatchEvaluationResponse,
   EvaluationFilters,
   BaseResponse,
+  PaginatedResponse,
 } from '@/types/api';
 
 import { apiGet, apiPost } from './client';
@@ -23,7 +25,7 @@ export const evaluationsApi = {
   getEvaluation: (evaluationId: string): Promise<BaseResponse<EvaluationResponse>> =>
     apiGet(`/evaluations/${evaluationId}`),
 
-  listEvaluations: (filters?: EvaluationFilters): Promise<EvaluationResponse[]> =>
+  listEvaluations: (filters?: EvaluationFilters): Promise<BaseResponse<PaginatedResponse<EvaluationListResponse>>> =>
     apiGet('/evaluations', { params: filters }),
 
   // Evaluation analytics

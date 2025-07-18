@@ -272,7 +272,7 @@ function RecentActivity() {
       {evaluations && evaluations.length > 0 ? (
         <div className="space-y-3">
           {evaluations.slice(0, 5).map((evaluation) => (
-            <div key={evaluation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <div key={evaluation.evaluation_id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex-1">
                 <p className="font-medium text-gray-900">
                   Candidate {evaluation.candidate_id.slice(0, 8)}...

@@ -9,8 +9,6 @@ import {
   ArrowLeftIcon,
   ScaleIcon,
   TrophyIcon,
-  CheckCircleIcon,
-  XCircleIcon,
 } from '@heroicons/react/24/outline';
 
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
@@ -263,21 +261,11 @@ export default function CompareCandidatesPage() {
                                 Key Strengths
                               </td>
                               {selectedCandidateData.map((candidate) => {
-                                const evaluation = candidateEvaluations.find(e => e.candidate_id === candidate.id);
                                 return (
                                   <td key={candidate.id} className="px-4 py-3">
-                                    {evaluation && evaluation.strengths ? (
-                                      <ul className="text-xs space-y-1">
-                                        {evaluation.strengths.slice(0, 3).map((strength, idx) => (
-                                          <li key={idx} className="flex items-center gap-1">
-                                            <CheckCircleIcon className="h-3 w-3 text-green-500 flex-shrink-0" />
-                                            <span>{strength}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">No data</span>
-                                    )}
+                                    <span className="text-gray-400 text-xs">
+                                      Detailed data not available in list view
+                                    </span>
                                   </td>
                                 );
                               })}
@@ -289,21 +277,11 @@ export default function CompareCandidatesPage() {
                                 Development Areas
                               </td>
                               {selectedCandidateData.map((candidate) => {
-                                const evaluation = candidateEvaluations.find(e => e.candidate_id === candidate.id);
                                 return (
                                   <td key={candidate.id} className="px-4 py-3">
-                                    {evaluation && evaluation.gaps ? (
-                                      <ul className="text-xs space-y-1">
-                                        {evaluation.gaps.slice(0, 3).map((gap, idx) => (
-                                          <li key={idx} className="flex items-center gap-1">
-                                            <XCircleIcon className="h-3 w-3 text-red-500 flex-shrink-0" />
-                                            <span>{gap}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    ) : (
-                                      <span className="text-gray-400 text-xs">No data</span>
-                                    )}
+                                    <span className="text-gray-400 text-xs">
+                                      Detailed data not available in list view
+                                    </span>
                                   </td>
                                 );
                               })}

@@ -5,7 +5,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { 
   ChartBarIcon,
   DocumentTextIcon,
@@ -13,14 +12,13 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   XMarkIcon,
-  EyeIcon,
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline';
 
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { EvaluationResponse, QualificationTier } from '@/types/api';
+import type { EvaluationResponse } from '@/types/api';
 
 interface EvaluationResultsProps {
   evaluation: EvaluationResponse;
@@ -37,9 +35,8 @@ export function EvaluationResults({
   onCompare,
   onReEvaluate
 }: EvaluationResultsProps) {
-  const [showEvidence, setShowEvidence] = useState<string | null>(null);
 
-  const getTierColor = (tier?: QualificationTier) => {
+  const getTierColor = (tier?: string) => {
     switch (tier) {
       case 'highly_qualified': return 'success';
       case 'qualified': return 'primary';
@@ -49,7 +46,7 @@ export function EvaluationResults({
     }
   };
 
-  const getTierIcon = (tier?: QualificationTier) => {
+  const getTierIcon = (tier?: string) => {
     switch (tier) {
       case 'highly_qualified': return CheckCircleIcon;
       case 'qualified': return CheckCircleIcon;
@@ -73,7 +70,7 @@ export function EvaluationResults({
     return 'bg-red-500';
   };
 
-  const formatTierName = (tier?: QualificationTier) => {
+  const formatTierName = (tier?: string) => {
     if (!tier) return 'Unknown';
     return tier.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
@@ -172,68 +169,10 @@ export function EvaluationResults({
         </div>
       </Card>
 
-      {/* Criterion Scores */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Detailed Scores
-        </h3>
-        <div className="space-y-4">
-          {Object.entries(evaluation.scores || {}).map(([criterion, score]) => (
-            <div key={criterion} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-gray-900 capitalize">
-                  {criterion.replace('_', ' ')}
-                </h4>
-                <div className="flex items-center space-x-2">
-                  <span className={`font-bold ${getScoreColor(score.percentage)}`}>
-                    {score.percentage.toFixed(1)}%
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowEvidence(
-                      showEvidence === criterion ? null : criterion
-                    )}
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className={`h-2 rounded-full ${getScoreBarColor(score.percentage)}`}
-                  style={{ width: `${score.percentage}%` }}
-                />
-              </div>
-              
-              <div className="flex items-center justify-between text-sm text-gray-600">
-                <span>{score.score}/{score.max_score} points</span>
-                <span>Confidence: {Math.round(score.confidence * 100)}%</span>
-              </div>
-
-              {showEvidence === criterion && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h5 className="font-medium text-blue-900 mb-2">Evidence & Justification</h5>
-                  <p className="text-sm text-blue-800 mb-3">{score.justification}</p>
-                  {score.evidence && score.evidence.length > 0 && (
-                    <div>
-                      <h6 className="font-medium text-blue-900 mb-1">Supporting Evidence:</h6>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        {score.evidence.map((evidence, index) => (
-                          <li key={index} className="flex items-start">
-                            <span className="inline-block w-1 h-1 bg-blue-600 rounded-full mt-2 mr-2 flex-shrink-0" />
-                            {evidence}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* Note: Detailed scores not available in list view */}
+      <Card className="p-6 text-center text-gray-500">
+        <p>Detailed evaluation scores are not available in list view.</p>
+        <p className="text-sm mt-1">Use the individual evaluation page for complete details.</p>
       </Card>
 
       {/* Strengths and Gaps */}
@@ -315,11 +254,7 @@ export function EvaluationResults({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <div>
             <p className="text-gray-600">Evaluation ID</p>
-            <p className="font-medium">{evaluation.id.slice(0, 8)}...</p>
-          </div>
-          <div>
-            <p className="text-gray-600">AI Model</p>
-            <p className="font-medium">{evaluation.ai_model}</p>
+            <p className="font-medium">{evaluation.evaluation_id.slice(0, 8)}...</p>
           </div>
           <div>
             <p className="text-gray-600">Created</p>
@@ -360,9 +295,7 @@ export function EvaluationComparison({
     );
   }
 
-  const allCriteria = Array.from(new Set(
-    evaluations.flatMap(e => Object.keys(e.scores || {}))
-  ));
+  const allCriteria: string[] = []; // Scores not available in list response
 
   return (
     <div className="space-y-6">
@@ -383,7 +316,7 @@ export function EvaluationComparison({
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Scores</h3>
           <div className="space-y-3">
             {evaluations.map((evaluation) => (
-              <div key={evaluation.id} className="flex items-center space-x-4">
+              <div key={evaluation.evaluation_id} className="flex items-center space-x-4">
                 <div className="w-32">
                   <p className="font-medium text-gray-900">
                     {candidateNames[evaluation.candidate_id] || `Candidate ${evaluation.candidate_id.slice(0, 8)}...`}
@@ -434,7 +367,7 @@ export function EvaluationComparison({
                 <tr className="border-b">
                   <th className="text-left p-3 font-medium text-gray-900">Criterion</th>
                   {evaluations.map((evaluation) => (
-                    <th key={evaluation.id} className="text-center p-3 font-medium text-gray-900">
+                    <th key={evaluation.evaluation_id} className="text-center p-3 font-medium text-gray-900">
                       {candidateNames[evaluation.candidate_id] || `Candidate ${evaluation.candidate_id.slice(0, 8)}...`}
                     </th>
                   ))}
@@ -446,38 +379,11 @@ export function EvaluationComparison({
                     <td className="p-3 font-medium text-gray-900 capitalize">
                       {criterion.replace('_', ' ')}
                     </td>
-                    {evaluations.map((evaluation) => {
-                      const score = evaluation.scores?.[criterion];
-                      return (
-                        <td key={evaluation.id} className="p-3 text-center">
-                          {score ? (
-                            <div>
-                              <span className={`font-bold ${
-                                score.percentage >= 80 ? 'text-green-600' :
-                                score.percentage >= 60 ? 'text-blue-600' :
-                                score.percentage >= 40 ? 'text-orange-600' :
-                                'text-red-600'
-                              }`}>
-                                {score.percentage.toFixed(1)}%
-                              </span>
-                              <div className="mt-1 w-full bg-gray-200 rounded-full h-1">
-                                <div 
-                                  className={`h-1 rounded-full ${
-                                    score.percentage >= 80 ? 'bg-green-500' :
-                                    score.percentage >= 60 ? 'bg-blue-500' :
-                                    score.percentage >= 40 ? 'bg-orange-500' :
-                                    'bg-red-500'
-                                  }`}
-                                  style={{ width: `${score.percentage}%` }}
-                                />
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">-</span>
-                          )}
+                    {evaluations.map((evaluation) => (
+                        <td key={evaluation.evaluation_id} className="p-3 text-center text-gray-500">
+                          Not available
                         </td>
-                      );
-                    })}
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -491,7 +397,7 @@ export function EvaluationComparison({
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Strengths & Development Areas</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {evaluations.map((evaluation) => (
-            <div key={evaluation.id} className="space-y-4">
+            <div key={evaluation.evaluation_id} className="space-y-4">
               <h4 className="font-medium text-gray-900">
                 {candidateNames[evaluation.candidate_id] || `Candidate ${evaluation.candidate_id.slice(0, 8)}...`}
               </h4>

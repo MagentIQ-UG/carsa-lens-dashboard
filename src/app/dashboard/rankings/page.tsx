@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { AuthenticatedRoute } from '@/components/auth/protected-route';
 import { Container } from '@/components/ui/container';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -335,23 +336,24 @@ export default function RankingsPage() {
   })) || [];
 
   return (
-    <DashboardLayout 
-      title="Rankings & Decision Making" 
-      breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Rankings' }
-      ]}
-    >
-      <Container>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Rankings & Decision Making
-          </h1>
-          <p className="text-gray-600">
-            Advanced candidate ranking, analytics, and decision support tools
-          </p>
-        </div>
+    <AuthenticatedRoute>
+      <DashboardLayout 
+        title="Rankings & Decision Making" 
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Rankings' }
+        ]}
+      >
+        <Container>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Rankings & Decision Making
+            </h1>
+            <p className="text-gray-600">
+              Advanced candidate ranking, analytics, and decision support tools
+            </p>
+          </div>
 
         {/* Overview Metrics */}
         <RankingOverviewMetrics />
@@ -410,5 +412,6 @@ export default function RankingsPage() {
         </div>
       </Container>
     </DashboardLayout>
+    </AuthenticatedRoute>
   );
 }

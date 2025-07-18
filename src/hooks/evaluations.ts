@@ -36,8 +36,29 @@ export const evaluationKeys = {
 export function useEvaluations(filters?: EvaluationFilters) {
   return useQuery({
     queryKey: evaluationKeys.list(filters || {}),
-    queryFn: () => evaluationsApi.listEvaluations(filters),
+    queryFn: async () => {
+      console.log('🔍 Fetching evaluations with filters:', filters);
+      // Temporary: Return empty array to test auth without API calls
+      // TODO: Remove this mock when API is fixed
+      if (process.env.NEXT_PUBLIC_MOCK_EVALUATIONS === 'true') {
+        console.log('📋 Using mock evaluations data');
+        return [];
+      }
+      try {
+        return await evaluationsApi.listEvaluations(filters);
+      } catch (error: any) {
+        console.error('❌ Evaluations query failed:', error);
+        throw error;
+      }
+    },
     staleTime: 30000, // 30 seconds
+    retry: (failureCount, error: any) => {
+      // Don't retry on auth errors
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 }
 

@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { DashboardLayout } from '@/components/layouts/dashboard-layout';
+import { AuthenticatedRoute } from '@/components/auth/protected-route';
 import { Container } from '@/components/ui/container';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -334,23 +335,24 @@ export default function EvaluationCenterPage() {
   }) || [];
 
   return (
-    <DashboardLayout 
-      title="Evaluation Center" 
-      breadcrumbs={[
-        { label: 'Dashboard', href: '/dashboard' },
-        { label: 'Evaluation Center' }
-      ]}
-    >
-      <Container>
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Evaluation Center
-          </h1>
-          <p className="text-gray-600">
-            AI-powered candidate evaluation and assessment tools
-          </p>
-        </div>
+    <AuthenticatedRoute>
+      <DashboardLayout 
+        title="Evaluation Center" 
+        breadcrumbs={[
+          { label: 'Dashboard', href: '/dashboard' },
+          { label: 'Evaluation Center' }
+        ]}
+      >
+        <Container>
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Evaluation Center
+            </h1>
+            <p className="text-gray-600">
+              AI-powered candidate evaluation and assessment tools
+            </p>
+          </div>
 
         {/* Overview Metrics */}
         <OverviewMetrics />
@@ -409,5 +411,6 @@ export default function EvaluationCenterPage() {
         </div>
       </Container>
     </DashboardLayout>
+    </AuthenticatedRoute>
   );
 }

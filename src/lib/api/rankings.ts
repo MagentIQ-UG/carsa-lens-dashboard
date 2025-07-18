@@ -17,8 +17,11 @@ export const rankingsApi = {
   createRanking: (data: RankingCreateRequest): Promise<RankingResponse> =>
     apiPost('/rankings/', data),
 
-  listRankings: (filters?: RankingFilters): Promise<RankingResponse[]> =>
-    apiGet('/rankings/', { params: filters }),
+  // Note: Backend doesn't provide a general list endpoint
+  // Rankings must be fetched by job ID using getJobRankings
+  listRankings: (filters?: RankingFilters): Promise<RankingResponse[]> => {
+    throw new Error('Use getJobRankings instead - backend requires job_id for listing rankings');
+  },
 
   getRanking: (rankingId: string): Promise<RankingResponse> =>
     apiGet(`/rankings/${rankingId}`),

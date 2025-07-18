@@ -21,7 +21,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
-import { useRankings } from '@/hooks/rankings';
+import { useAllJobsRankings } from '@/hooks/rankings';
 import { useJobs } from '@/hooks/jobs';
 
 // Quick Actions for Rankings
@@ -191,7 +191,7 @@ function JobRankingCard({ job }: { job: JobRankingSummary }) {
 }
 
 function RankingOverviewMetrics() {
-  const { data: rankings, isLoading: rankingsLoading } = useRankings();
+  const { data: rankings = [], isLoading: rankingsLoading, isError: rankingsError } = useAllJobsRankings();
   const { data: jobs, isLoading: jobsLoading } = useJobs();
 
   if (rankingsLoading || jobsLoading) {
@@ -206,7 +206,7 @@ function RankingOverviewMetrics() {
     );
   }
 
-  const totalRankings = rankings?.length || 0;
+  const totalRankings = rankingsError ? 0 : rankings.length;
   const totalJobs = jobs?.length || 0;
   // Mock data for status counts since RankingResponse doesn't have status
   const activeRankings = Math.floor(totalRankings * 0.3);
@@ -266,7 +266,7 @@ function RankingOverviewMetrics() {
 }
 
 function RecentRankings() {
-  const { data: rankings, isLoading } = useRankings({ limit: 5 });
+  const { data: rankings = [], isLoading, isError } = useAllJobsRankings();
 
   if (isLoading) {
     return (
@@ -277,40 +277,50 @@ function RecentRankings() {
     );
   }
 
+  if (isError) {
+    return (
+      <Card className="p-6">
+        <h3 className="text-lg font-semibold mb-4">Recent Rankings</h3>
+        <div className="text-center py-4">
+          <ExclamationTriangleIcon className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+          <p className="text-gray-600">Error loading rankings</p>
+          <p className="text-sm text-gray-500 mt-1">Rankings endpoint may not be configured yet</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-6">
       <h3 className="text-lg font-semibold mb-4">Recent Rankings</h3>
       {rankings && rankings.length > 0 ? (
         <div className="space-y-3">
-          {rankings.slice(0, 5).map((ranking) => (
-            <div key={ranking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          {rankings.slice(0, 5).map((ranking, index) => (
+            <div key={ranking.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex-1">
                 <p className="font-medium text-gray-900">
-                  Ranking #{ranking.rank} (Job {ranking.job_id.slice(0, 8)}...)
+                  Ranking #{ranking.rank || index + 1}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Score: {ranking.score.toFixed(1)}% • Confidence: {(ranking.confidence * 100).toFixed(0)}%
+                  Job: {ranking.job_id?.slice(0, 8)}... • Score: {ranking.score?.toFixed(1) || 'N/A'}
                 </p>
               </div>
               <div className="text-right">
                 <Badge 
-                  variant={ranking.score >= 80 ? 'success' : ranking.score >= 60 ? 'primary' : 'warning'}
+                  variant="primary"
                   size="sm"
                 >
-                  {ranking.score >= 80 ? 'High' : ranking.score >= 60 ? 'Good' : 'Fair'}
+                  Rank #{ranking.rank || index + 1}
                 </Badge>
-                <p className="text-xs text-gray-500 mt-1">
-                  {new Date(ranking.created_at).toLocaleDateString()}
-                </p>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="text-center py-8">
-          <TrophyIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No rankings yet</p>
-          <p className="text-sm text-gray-500">Create your first ranking to get started</p>
+          <TrophyIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2">No rankings created yet</p>
+          <p className="text-sm text-gray-500">Create your first ranking to see insights here</p>
         </div>
       )}
     </Card>

@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { rankingsApi } from '@/lib/api';
+import { jobsApi } from '@/lib/api';
 import {
   RankingCreateRequest,
   RankingFilters,
@@ -24,12 +25,17 @@ export const rankingKeys = {
   analytics: (id: string) => [...rankingKeys.all, 'analytics', id] as const,
 };
 
-// List rankings
+// List rankings - since backend requires job_id, we'll use job rankings instead
 export function useRankings(filters?: RankingFilters) {
+  // For now, return a disabled query with an error
+  // The dashboard should use useJobRankings or useAllJobsRankings instead
   return useQuery({
     queryKey: rankingKeys.list(filters || {}),
-    queryFn: () => rankingsApi.listRankings(filters),
-    staleTime: 30000, // 30 seconds
+    queryFn: () => {
+      throw new Error('Backend requires job_id for listing rankings. Use useJobRankings instead.');
+    },
+    enabled: false, // Disable this query
+    staleTime: 30000,
   });
 }
 
@@ -40,6 +46,38 @@ export function useRanking(rankingId: string) {
     queryFn: () => rankingsApi.getRanking(rankingId),
     enabled: !!rankingId,
     staleTime: 60000, // 1 minute
+  });
+}
+
+// Get rankings across all jobs (alternative to useRankings)
+export function useAllJobsRankings(filters?: RankingFilters) {
+  return useQuery({
+    queryKey: rankingKeys.list(filters || {}),
+    queryFn: async () => {
+      try {
+        // First get all jobs
+        const jobs = await jobsApi.listJobs({ limit: 100 });
+        
+        if (!jobs || jobs.length === 0) {
+          return [];
+        }
+
+        // Then get rankings for each job
+        const rankingPromises = jobs.map(job => 
+          rankingsApi.getJobRankings(job.id, { limit: 10 }).catch(() => [])
+        );
+
+        const rankingResults = await Promise.all(rankingPromises);
+        
+        // Flatten all rankings into a single array
+        return rankingResults.flat().filter(Boolean);
+      } catch (error) {
+        console.error('Error fetching rankings across jobs:', error);
+        return [];
+      }
+    },
+    staleTime: 30000, // 30 seconds
+    retry: 1, // Only retry once to avoid repeated failures
   });
 }
 

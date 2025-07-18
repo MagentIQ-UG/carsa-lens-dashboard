@@ -632,6 +632,55 @@ export interface BatchEvaluationResponse {
   errors: string[];
 }
 
+// Enhanced Evaluation Types
+export interface EvaluationProgress {
+  evaluation_id: string;
+  candidate_id: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  progress_percentage: number;
+  stage: string;
+  estimated_completion?: string;
+  error_message?: string;
+  started_at: string;
+  completed_at?: string;
+}
+
+export interface EvaluationSession {
+  session_id: string;
+  job_id: string;
+  candidate_ids: string[];
+  status: 'active' | 'completed' | 'cancelled';
+  progress: EvaluationProgress[];
+  total_candidates: number;
+  completed_count: number;
+  failed_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EvaluationComparison {
+  candidate_ids: string[];
+  job_id: string;
+  evaluations: EvaluationResponse[];
+  comparison_matrix: {
+    criterion: string;
+    scores: { candidate_id: string; score: number; evidence?: string }[];
+  }[];
+  strengths_comparison: {
+    candidate_id: string;
+    strengths: string[];
+  }[];
+  gaps_comparison: {
+    candidate_id: string;
+    gaps: string[];
+  }[];
+  recommendations: {
+    candidate_id: string;
+    recommendation: string;
+    reasoning: string;
+  }[];
+}
+
 // Scorecard Types
 export interface ScorecardResponse {
   id: string;
@@ -848,4 +897,39 @@ export interface EvaluationFilters extends PaginationParams {
   qualification_tier?: QualificationTier;
   min_score?: number;
   max_score?: number;
+}
+
+// Advanced Ranking Types
+export interface AdvancedRankingCriteria {
+  job_id: string;
+  criteria_weights: {
+    technical_skills: number;
+    experience: number;
+    education: number;
+    cultural_fit: number;
+    communication: number;
+  };
+  include_diversity_factors?: boolean;
+  ranking_method: 'weighted_average' | 'top_score_priority' | 'balanced_scorecard';
+  tie_breaking_factors: string[];
+  notes?: string;
+}
+
+export interface CandidateRankingDetail {
+  candidate_id: string;
+  rank: number;
+  final_score: number;
+  score_breakdown?: Record<string, number>;
+  justification?: string;
+}
+
+export interface RankingResult {
+  id: string;
+  job_id: string;
+  ranked_candidates: CandidateRankingDetail[];
+  criteria_weights?: Record<string, number>;
+  methodology?: string;
+  confidence_level?: number;
+  created_at: string;
+  updated_at: string;
 }

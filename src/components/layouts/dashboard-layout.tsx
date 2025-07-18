@@ -12,7 +12,8 @@ import {
   BarChart3, 
   Settings,
   Building2,
-  UserPlus
+  UserPlus,
+  Trophy
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -83,6 +84,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       href: '/dashboard/evaluations',
       icon: <ClipboardList className="h-5 w-5" />,
       badge: '6'
+    },
+    {
+      id: 'rankings',
+      label: 'Rankings',
+      href: '/dashboard/rankings',
+      icon: <Trophy className="h-5 w-5" />,
+      badge: '3'
     },
     {
       id: 'analytics',

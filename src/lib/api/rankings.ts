@@ -49,15 +49,32 @@ export const rankingsApi = {
   createShortlist: (data: ShortlistCreateRequest): Promise<ShortlistResponse> =>
     apiPost('/rankings/shortlists', data),
 
+  // Advanced rankings (matching OpenAPI spec)
+  createAdvancedRanking: (data: any): Promise<any> =>
+    apiPost('/rankings/', data),
+
+  getRankingDetails: (rankingId: string, params?: {
+    include_analytics?: boolean;
+    include_diversity_report?: boolean;
+  }): Promise<any> =>
+    apiGet(`/rankings/${rankingId}`, { params }),
+
   // Analytics and insights
-  getRankingAnalytics: (rankingId: string): Promise<RankingAnalytics> =>
-    apiGet(`/rankings/${rankingId}/analytics`),
+  getRankingAnalytics: (rankingId: string, params?: {
+    analytics_type?: string;
+  }): Promise<RankingAnalytics> =>
+    apiGet(`/rankings/${rankingId}/analytics`, { params }),
 
-  compareRankings: (rankingId: string, compareWith: string[]): Promise<RankingComparison> =>
-    apiPost(`/rankings/${rankingId}/compare`, { compare_with: compareWith }),
+  compareRankings: (rankingId: string, compareWith: string[], params?: {
+    comparison_metrics?: string[];
+  }): Promise<RankingComparison> =>
+    apiPost(`/rankings/${rankingId}/compare`, compareWith, { params }),
 
-  getDiversityReport: (rankingId: string): Promise<DiversityReport> =>
-    apiGet(`/rankings/${rankingId}/diversity-report`),
+  getDiversityReport: (rankingId: string, params?: {
+    include_bias_analysis?: boolean;
+    include_recommendations?: boolean;
+  }): Promise<DiversityReport> =>
+    apiGet(`/rankings/${rankingId}/diversity-report`, { params }),
 
   // Batch operations
   batchUpdateRankings: (updates: Array<{

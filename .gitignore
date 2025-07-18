@@ -30,6 +30,7 @@
 *.swp
 *.swo
 *~
+.kiro
 
 # OS generated files
 Thumbs.db
